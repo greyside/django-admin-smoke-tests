@@ -36,35 +36,41 @@ class AdminSiteSmokeTest(TestCase):
             'ordering',
         ]
         
-        strip_minus = ('ordering',)
+        strip_minus_attrs = ('ordering',)
+        
+        def strip_minus(attr, val):
+            if attr in strip_minus_attrs and val[0] == '-':
+                val = val[1:]
+            return val
         
         for model, model_admin in self.admin_sites:
             attr_set = []
             
             for attr in iter_attributes:
-                attr_set += getattr(model_admin, attr)
+                attr_set += [strip_minus(attr, a) for a in getattr(model_admin, attr)]
             
             for attr in iter_or_falsy_attributes:
                 attrs = getattr(model_admin, attr, None)
                 
                 if isinstance(attrs, list) or isinstance(attrs, tuple):
-                    attr_set += attrs
+                    attr_set += [strip_minus(attr, a) for a in attrs]
             
             declared_fieldsets = model_admin.declared_fieldsets or []
             
             for fieldset in declared_fieldsets:
-                for field in fieldset[1]['fields']:
-                    if isinstance(field, list) or isinstance(field, tuple):
-                        attr_set += field
+                for attr in fieldset[1]['fields']:
+                    if isinstance(attr, list) or isinstance(attr, tuple):
+                        attr_set += [strip_minus(fieldset, a) for a in attr]
                     else:
-                        attr_set.append(field)
+                        attr_set.append(attr)
             
             attr_set = set(attr_set)
             
             for attr in single_attributes:
                 val = getattr(model_admin, attr, None)
+                
                 if val:
-                    attr_set.add(val)
+                    attr_set.add(strip_minus(attr, val))
             
             # FIXME: not all attributes can be used everywhere (e.g. you can't use
             # list_filter with a form field). This will have to be fixed later.
@@ -77,9 +83,6 @@ class AdminSiteSmokeTest(TestCase):
                 # for now we'll just check attributes, not strings
                 if not isinstance(attr, basestring):
                     continue
-                
-                if attr[0] == '-' and attr[1:] in strip_minus:
-                    attr = attr[1:]
                 
                 # don't split attributes that start with underscores (such as __str__)
                 if attr[0] != '_':
