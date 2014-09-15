@@ -31,5 +31,6 @@ setup(name='django-admin-smoke-tests',
         package_name,
     ],
     include_package_data=True,
+    zip_safe=False,
 )
 
