@@ -3,10 +3,15 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 
 class AdminSiteSmokeTest(TestCase):
+    admin_sites = None
+    
     def setUp(self):
         super(AdminSiteSmokeTest, self).setUp()
         
         self.factory = RequestFactory()
+        
+        if not self.admin_sites:
+            self.admin_sites = admin.site._registry.items()
         
         try:
             admin.autodiscover()
@@ -31,7 +36,9 @@ class AdminSiteSmokeTest(TestCase):
             'ordering',
         ]
         
-        for model, model_admin in admin.site._registry.items():
+        strip_minus = ('ordering',)
+        
+        for model, model_admin in self.admin_sites:
             attr_set = []
             
             for attr in iter_attributes:
@@ -71,7 +78,10 @@ class AdminSiteSmokeTest(TestCase):
                 if not isinstance(attr, basestring):
                     continue
                 
-                # dont' split attributes that start with underscores (such as __str__)
+                if attr[0] == '-' and attr in strip_minus:
+                    attr = attr[1:]
+                
+                # don't split attributes that start with underscores (such as __str__)
                 if attr[0] != '_':
                     attrs = attr.split('__')
                     attr = attrs[0]
@@ -91,7 +101,7 @@ class AdminSiteSmokeTest(TestCase):
         request = self.factory.get('/')
         
         #TODO: use model_mommy to generate a few instances to query against
-        for model, model_admin in admin.site._registry.items():
+        for model, model_admin in self.admin_sites:
             # make sure no errors happen here
             qs = list(model_admin.queryset(request))
         
