@@ -95,12 +95,14 @@ class AdminSiteSmokeTest(TestCase):
                 
                 has_model_field = attr in model_field_names
                 has_form_field = attr in form_field_names
-                has_model_attr = hasattr(model_instance, attr)
+                try:
+                    has_model_attr = hasattr(model_instance, attr)
+                except ValueError:
+                    has_model_attr = attr in model_instance.__dict__
                 has_admin_attr = hasattr(model_admin, attr)
                 has_field_or_attr = has_model_field or has_form_field or has_model_attr or has_admin_attr
                 
                 self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' % (attr, model, model_admin,))
-                
     
     def test__queryset(self):
         request = self.factory.get('/')
