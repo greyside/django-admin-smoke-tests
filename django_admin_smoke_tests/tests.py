@@ -1,6 +1,7 @@
 import six
 
 from django.contrib import admin, auth
+from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase
 from django.test.client import RequestFactory
 
@@ -104,7 +105,7 @@ class AdminSiteSmokeTest(TestCase):
                 has_form_field = attr in form_field_names
                 try:
                     has_model_attr = hasattr(model_instance, attr)
-                except ValueError:
+                except (ValueError, ObjectDoesNotExist):
                     has_model_attr = attr in model_instance.__dict__
                 has_admin_attr = hasattr(model_admin, attr)
                 has_field_or_attr = has_model_field or has_form_field or has_model_attr or has_admin_attr
