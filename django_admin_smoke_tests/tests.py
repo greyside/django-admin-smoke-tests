@@ -1,6 +1,6 @@
 import six
 
-from django.contrib import admin
+from django.contrib import admin, auth
 from django.test import TestCase
 from django.test.client import RequestFactory
 
@@ -9,6 +9,8 @@ class AdminSiteSmokeTest(TestCase):
     
     def setUp(self):
         super(AdminSiteSmokeTest, self).setUp()
+        
+        self.superuser = auth.get_user_model().objects.create_superuser('testuser', 'testuser@example.com', 'foo')
         
         self.factory = RequestFactory()
         
@@ -20,7 +22,12 @@ class AdminSiteSmokeTest(TestCase):
         except:
             pass
     
-    def test__check_specified_fields(self):
+    def get_request(self):
+        request = self.factory.get('/')
+        request.user = self.superuser
+        return request
+    
+    def test_specified_fields(self):
         single_attributes = ['date_hierarchy']
         iter_attributes = [
             'filter_horizontal',
@@ -104,12 +111,25 @@ class AdminSiteSmokeTest(TestCase):
                 
                 self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' % (attr, model, model_admin,))
     
-    def test__queryset(self):
-        request = self.factory.get('/')
+    def test_queryset(self):
+        request = self.get_request()
         
         #TODO: use model_mommy to generate a few instances to query against
         for model, model_admin in self.admin_sites:
             # make sure no errors happen here
             qs = list(model_admin.queryset(request))
+    
+    def test_changelist_view(self):
+        request = self.get_request()
         
+        for model, model_admin in self.admin_sites:
+            # make sure no errors happen here
+            model_admin.changelist_view(request)
+    
+    def test_add_view(self):
+        request = self.get_request()
+        
+        for model, model_admin in self.admin_sites:
+            # make sure no errors happen here
+            model_admin.add_view(request)
 
