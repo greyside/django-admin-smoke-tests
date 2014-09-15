@@ -1,3 +1,5 @@
+import six
+
 from django.contrib import admin
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -81,7 +83,7 @@ class AdminSiteSmokeTest(TestCase):
             
             for attr in attr_set:
                 # for now we'll just check attributes, not strings
-                if not isinstance(attr, basestring):
+                if not isinstance(attr, six.string_types):
                     continue
                 
                 # don't split attributes that start with underscores (such as __str__)

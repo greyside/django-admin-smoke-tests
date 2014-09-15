@@ -26,6 +26,7 @@ setup(name='django-admin-smoke-tests',
     license='BSD',
     install_requires=[
         'django>=1.6',
+        'six',
     ],
     packages=[
         package_name,
