@@ -78,7 +78,7 @@ class AdminSiteSmokeTest(TestCase):
                 if not isinstance(attr, basestring):
                     continue
                 
-                if attr[0] == '-' and attr in strip_minus:
+                if attr[0] == '-' and attr[1:] in strip_minus:
                     attr = attr[1:]
                 
                 # don't split attributes that start with underscores (such as __str__)
