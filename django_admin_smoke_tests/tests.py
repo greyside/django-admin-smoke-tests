@@ -1,7 +1,7 @@
 import six
 
 from django.contrib import admin, auth
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.test import TestCase
 from django.test.client import RequestFactory
 
@@ -120,6 +120,12 @@ class AdminSiteSmokeTest(TestCase):
             # make sure no errors happen here
             qs = list(model_admin.queryset(request))
     
+    def test_get_absolute_url(self):
+        for model, model_admin in self.admin_sites:
+            # make sure no errors happen here
+            if hasattr(model, 'get_absolute_url'):
+                url = model(id=1).get_absolute_url()
+    
     def test_changelist_view(self):
         request = self.get_request()
         
@@ -132,5 +138,9 @@ class AdminSiteSmokeTest(TestCase):
         
         for model, model_admin in self.admin_sites:
             # make sure no errors happen here
-            model_admin.add_view(request)
+            try:
+                model_admin.add_view(request)
+            except PermissionDenied:
+                # this error is commonly raised by ModelAdmins that don't allow adding.
+                pass
 
