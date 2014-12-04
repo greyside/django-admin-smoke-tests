@@ -14,7 +14,7 @@ class PostAdmin(admin.ModelAdmin):
     list_editable = ['status']
     list_display = ('title', 'author', 'status', 'modified', 'published',)
     list_filter = ('author', 'status', 'channel', 'created', 'modified', 'published',)
-    readonly_fields = ['created', 'modified',]
+    readonly_fields = ['created', 'modified', 'time_diff',]
 
     search_fields = ['title', 'text']
     

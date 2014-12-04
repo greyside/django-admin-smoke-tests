@@ -51,20 +51,22 @@ class Post(_Abstract):
     modified        = models.DateTimeField(auto_now=True, editable=False)
     published       = models.DateTimeField(default=timezone.now())
 
-    def _get_teaser(self):
+    @property
+    def teaser(self):
         "A small excerpt of text that can be used in the absence of a custom summary."
         return self.text[:Post.SUMMARY_LENGTH]
 
-    teaser = property(_get_teaser)
-
-    def _get_summary(self):
+    @property
+    def summary(self):
         "Returns custom_summary, or teaser if not available."
         if len(self.custom_summary) > 0:
             return self.custom_summary
         else:
             return self.teaser
-
-    summary = property(_get_summary)
+    
+    @property
+    def time_diff(self):
+        return self.modified - self.created
 
     class Meta:
         ordering = ['published']
