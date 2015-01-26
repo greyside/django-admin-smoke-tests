@@ -65,7 +65,8 @@ class AdminSiteSmokeTest(TestCase):
                 if isinstance(attrs, list) or isinstance(attrs, tuple):
                     attr_set += [strip_minus(attr, a) for a in attrs]
             
-            declared_fieldsets = model_admin.declared_fieldsets or []
+            declared_fieldsets = getattr(model_admin, 'declared_fieldsets', None)
+            declared_fieldsets = declared_fieldsets or []
             
             for fieldset in declared_fieldsets:
                 for attr in fieldset[1]['fields']:
@@ -118,7 +119,10 @@ class AdminSiteSmokeTest(TestCase):
         #TODO: use model_mommy to generate a few instances to query against
         for model, model_admin in self.admin_sites:
             # make sure no errors happen here
-            qs = list(model_admin.queryset(request))
+            if hasattr(model_admin, 'queryset'):
+                qs = list(model_admin.queryset(request))
+            if hasattr(model_admin, 'get_queryset'):
+                qs = list(model_admin.get_queryset(request))
     
     def test_get_absolute_url(self):
         for model, model_admin in self.admin_sites:
