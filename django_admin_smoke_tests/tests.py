@@ -1,4 +1,5 @@
 import six
+import warnings
 
 from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
@@ -65,7 +66,8 @@ class AdminSiteSmokeTest(TestCase):
                 if isinstance(attrs, list) or isinstance(attrs, tuple):
                     attr_set += [strip_minus(attr, a) for a in attrs]
             
-            declared_fieldsets = getattr(model_admin, 'declared_fieldsets', None)
+            with warnings.catch_warnings():
+                declared_fieldsets = getattr(model_admin, 'declared_fieldsets', None)
             declared_fieldsets = declared_fieldsets or []
             
             for fieldset in declared_fieldsets:
