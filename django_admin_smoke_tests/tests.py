@@ -67,6 +67,7 @@ class AdminSiteSmokeTest(TestCase):
                     attr_set += [strip_minus(attr, a) for a in attrs]
             
             with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
                 declared_fieldsets = getattr(model_admin, 'declared_fieldsets', None)
             declared_fieldsets = declared_fieldsets or []
             
