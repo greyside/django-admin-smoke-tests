@@ -9,7 +9,8 @@ from django.test.client import RequestFactory
 
 class AdminSiteSmokeTest(TestCase):
     modeladmins = None
-    
+    fixtures = ['django_admin_smoke_tests']
+
     def setUp(self):
         super(AdminSiteSmokeTest, self).setUp()
 
@@ -143,9 +144,14 @@ class AdminSiteSmokeTest(TestCase):
 
     def test_get_absolute_url(self):
         for model, model_admin in self.modeladmins:
-            # make sure no errors happen here
+            # Use fixture data if it exists
+            instance = model.objects.first()
+            # Otherwise create a minimal instance
+            if not instance:
+                instance = model(pk=1)
             if hasattr(model, 'get_absolute_url'):
-                url = model(id=1).get_absolute_url()
+                # make sure no errors happen here
+                url = instance.get_absolute_url()
 
     def test_changelist_view(self):
         request = self.get_request()
