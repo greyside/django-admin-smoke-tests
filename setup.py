@@ -6,13 +6,14 @@ import django_admin_smoke_tests
 
 package_name = 'django_admin_smoke_tests'
 
+
 def runtests():
     import os
     import sys
-    
+
     import django
     from django.core.management import call_command
-    
+
     os.environ['DJANGO_SETTINGS_MODULE'] = 'test_project.settings'
     if django.VERSION[0] == 1 and django.VERSION[1] >= 7:
         django.setup()
@@ -21,7 +22,8 @@ def runtests():
 
 setup(name='django-admin-smoke-tests',
     version=django_admin_smoke_tests.__version__,
-    description="Runs some quick tests on your admin site objects to make sure there aren't non-existant fields listed, etc.",
+    description="Runs some quick tests on your admin site objects to make sure \
+there aren't non-existant fields listed, etc.",
     author='Seán Hayes',
     author_email='sean@seanhayes.name',
     classifiers=[
@@ -48,4 +50,3 @@ setup(name='django-admin-smoke-tests',
     zip_safe=False,
     test_suite='setup.runtests',
 )
-
