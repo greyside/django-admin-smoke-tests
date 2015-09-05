@@ -1,3 +1,5 @@
+sudo: false
+
 language: python
 
 python:
@@ -14,6 +16,16 @@ env:
 matrix:
   allow_failures:
     - env: DJANGO_VERSION=dev
+  include:
+    - python: "2.7"
+      env: MODE=flake8
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
 
 # command to install dependencies
 install:
@@ -26,5 +38,4 @@ after_success:
 # command to run tests
 script:
     - coverage erase
-    - tox -e py${TRAVIS_PYTHON_VERSION/./}-${DJANGO_VERSION}
-
+    - tox -e py${TRAVIS_PYTHON_VERSION/./}-${DJANGO_VERSION}${MODE}
