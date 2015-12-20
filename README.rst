@@ -9,7 +9,12 @@ django-admin-smoke-tests
 
 Run with ``./manage.py test django_admin_smoke_tests.tests``.
 
-Or import into your own code:
+You don't have to add anything ``INSTALLED_APPS``
+
+Usage in your tests
+-------------------
+
+Import into your own code:
 
 .. code:: python
 
@@ -20,3 +25,14 @@ Or import into your own code:
         def setUp(self):
             super(AdminSiteSmokeTest, self).setUp()
             # custom setup goes here
+
+If you want to use admin smoke tests as part of your tests with data from fixtures,
+you can do following:
+
+.. code:: python
+
+    from django.test import TestCase
+    from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
+
+    class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
+        fixtures = ['data']
