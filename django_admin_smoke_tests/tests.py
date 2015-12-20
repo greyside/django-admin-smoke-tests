@@ -167,7 +167,8 @@ class AdminSiteSmokeTestMixin(object):
 
         for model, model_admin in self.modeladmins:
             # make sure no errors happen here
-            model_admin.changelist_view(request)
+            response = model_admin.changelist_view(request)
+            self.assertEqual(response.status_code, 200)
 
     def test_add_view(self):
         request = self.get_request()
@@ -175,7 +176,8 @@ class AdminSiteSmokeTestMixin(object):
         for model, model_admin in self.modeladmins:
             # make sure no errors happen here
             try:
-                model_admin.add_view(request)
+                response = model_admin.add_view(request)
+                self.assertEqual(response.status_code, 200)
             except PermissionDenied:
                 # this error is commonly raised by ModelAdmins that don't allow
                 # adding.
