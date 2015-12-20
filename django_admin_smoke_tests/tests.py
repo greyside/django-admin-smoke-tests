@@ -4,6 +4,21 @@ from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.test import TestCase
 from django.test.client import RequestFactory
+import sys
+
+
+def for_all_model_admins(fn):
+    def test_deco(self):
+        for model, model_admin in self.modeladmins:
+            try:
+                fn(self, model, model_admin)
+            except Exception:
+                raise Exception(
+                    "Above exception occured while running test '%s'"
+                    "on modeladmin %s (%s)" %
+                    (fn.__name__, model_admin, model.__name__)).\
+                    with_traceback(sys.exc_info()[2])
+    return test_deco
 
 
 class AdminSiteSmokeTest(TestCase):
@@ -95,60 +110,60 @@ class AdminSiteSmokeTest(TestCase):
 
         return attr_set
 
-    def test_specified_fields(self):
-        for model, model_admin in self.modeladmins:
-            attr_set = self.get_attr_set(model, model_admin)
+    @for_all_model_admins
+    def test_specified_fields(self, model, model_admin):
+        attr_set = self.get_attr_set(model, model_admin)
 
-            # FIXME: not all attributes can be used everywhere (e.g. you can't
-            # use list_filter with a form field). This will have to be fixed
-            # later.
+        # FIXME: not all attributes can be used everywhere (e.g. you can't
+        # use list_filter with a form field). This will have to be fixed
+        # later.
+        try:
+            model_field_names = frozenset(model._meta.get_fields())
+        except AttributeError:  # Django<1.10
+            model_field_names = frozenset(
+                model._meta.get_all_field_names()
+            )
+        form_field_names = frozenset(getattr(model_admin.form,
+            'base_fields', []))
+
+        model_instance = model()
+
+        for attr in attr_set:
+            # for now we'll just check attributes, not strings
+            if not isinstance(attr, six.string_types):
+                continue
+
+            # don't split attributes that start with underscores (such as
+            # __str__)
+            if attr[0] != '_':
+                attr = attr.split('__')[0]
+
+            has_model_field = attr in model_field_names
+            has_form_field = attr in form_field_names
+            has_model_class_attr = hasattr(model_instance.__class__, attr)
+            has_admin_attr = hasattr(model_admin, attr)
+
             try:
-                model_field_names = frozenset(model._meta.get_fields())
-            except AttributeError:  # Django<1.10
-                model_field_names = frozenset(
-                    model._meta.get_all_field_names()
-                )
-            form_field_names = frozenset(getattr(model_admin.form,
-                'base_fields', []))
+                has_model_attr = hasattr(model_instance, attr)
+            except (ValueError, ObjectDoesNotExist):
+                has_model_attr = attr in model_instance.__dict__
 
-            model_instance = model()
+            has_field_or_attr = has_model_field or has_form_field or\
+                has_model_attr or has_admin_attr or has_model_class_attr
 
-            for attr in attr_set:
-                # for now we'll just check attributes, not strings
-                if not isinstance(attr, six.string_types):
-                    continue
+            self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' %
+                (attr, model, model_admin,))
 
-                # don't split attributes that start with underscores (such as
-                # __str__)
-                if attr[0] != '_':
-                    attr = attr.split('__')[0]
-
-                has_model_field = attr in model_field_names
-                has_form_field = attr in form_field_names
-                has_model_class_attr = hasattr(model_instance.__class__, attr)
-                has_admin_attr = hasattr(model_admin, attr)
-
-                try:
-                    has_model_attr = hasattr(model_instance, attr)
-                except (ValueError, ObjectDoesNotExist):
-                    has_model_attr = attr in model_instance.__dict__
-
-                has_field_or_attr = has_model_field or has_form_field or\
-                    has_model_attr or has_admin_attr or has_model_class_attr
-
-                self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' %
-                    (attr, model, model_admin,))
-
-    def test_queryset(self):
+    @for_all_model_admins
+    def test_queryset(self, model, model_admin):
         request = self.get_request()
 
         # TODO: use model_mommy to generate a few instances to query against
-        for model, model_admin in self.modeladmins:
-            # make sure no errors happen here
-            if hasattr(admin.ModelAdmin, 'queryset'):
-                list(model_admin.queryset(request))
-            if hasattr(admin.ModelAdmin, 'get_queryset'):
-                list(model_admin.get_queryset(request))
+        # make sure no errors happen here
+        if hasattr(admin.ModelAdmin, 'queryset'):
+            list(model_admin.queryset(request))
+        if hasattr(admin.ModelAdmin, 'get_queryset'):
+            list(model_admin.get_queryset(request))
 
     def test_get_absolute_url(self):
         for model, model_admin in self.modeladmins:
@@ -161,23 +176,23 @@ class AdminSiteSmokeTest(TestCase):
                 # make sure no errors happen here
                 instance.get_absolute_url()
 
-    def test_changelist_view(self):
+    @for_all_model_admins
+    def test_changelist_view(self, model, model_admin):
         request = self.get_request()
 
-        for model, model_admin in self.modeladmins:
-            # make sure no errors happen here
-            response = model_admin.changelist_view(request)
+        # make sure no errors happen here
+        response = model_admin.changelist_view(request)
+        self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_add_view(self, model, model_admin):
+        request = self.get_request()
+
+        # make sure no errors happen here
+        try:
+            response = model_admin.add_view(request)
             self.assertEqual(response.status_code, 200)
-
-    def test_add_view(self):
-        request = self.get_request()
-
-        for model, model_admin in self.modeladmins:
-            # make sure no errors happen here
-            try:
-                response = model_admin.add_view(request)
-                self.assertEqual(response.status_code, 200)
-            except PermissionDenied:
-                # this error is commonly raised by ModelAdmins that don't allow
-                # adding.
-                pass
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # adding.
+            pass
