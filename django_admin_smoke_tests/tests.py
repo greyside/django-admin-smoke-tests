@@ -102,7 +102,12 @@ class AdminSiteSmokeTestMixin(object):
             # FIXME: not all attributes can be used everywhere (e.g. you can't
             # use list_filter with a form field). This will have to be fixed
             # later.
-            model_field_names = frozenset(model._meta.get_all_field_names())
+            try:
+                model_field_names = frozenset(model._meta.get_fields())
+            except AttributeError:  # Django<1.10
+                model_field_names = frozenset(
+                    model._meta.get_all_field_names()
+                )
             form_field_names = frozenset(getattr(model_admin.form,
                 'base_fields', []))
 
