@@ -8,17 +8,23 @@ python:
   - "3.4"
 
 env:
-  - DJANGO_VERSION=1.6
-  - DJANGO_VERSION=1.7
-  - DJANGO_VERSION=1.8
-  - DJANGO_VERSION=dev
+  - DJANGO_VERSION=django16
+  - DJANGO_VERSION=django17
+  - DJANGO_VERSION=django18
+  - DJANGO_VERSION=django19
+  - DJANGO_VERSION=djangodev
 
 matrix:
   allow_failures:
-    - env: DJANGO_VERSION=dev
+    - env: DJANGO_VERSION=djangodev
   include:
     - python: "2.7"
       env: MODE=flake8
+  exclude:
+    - python: "3.3"
+      env: DJANGO_VERSION=django19
+    - python: "3.3"
+      env: DJANGO_VERSION=djangodev
 
 cache:
   directories:
