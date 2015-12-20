@@ -140,9 +140,9 @@ class AdminSiteSmokeTest(TestCase):
         # TODO: use model_mommy to generate a few instances to query against
         for model, model_admin in self.modeladmins:
             # make sure no errors happen here
-            if hasattr(model_admin, 'queryset'):
+            if hasattr(admin.ModelAdmin, 'queryset'):
                 list(model_admin.queryset(request))
-            if hasattr(model_admin, 'get_queryset'):
+            if hasattr(admin.ModelAdmin, 'get_queryset'):
                 list(model_admin.get_queryset(request))
 
     def test_get_absolute_url(self):
