@@ -1,6 +1,6 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 
-urlpatterns = patterns('',
+urlpatterns = (
     url(r'^posts/(?P<pk>.+)/$', lambda **kwargs: '', name="post-detail"),
 )
