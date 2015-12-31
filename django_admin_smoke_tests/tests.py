@@ -10,6 +10,8 @@ import sys
 def for_all_model_admins(fn):
     def test_deco(self):
         for model, model_admin in self.modeladmins:
+            if model._meta.app_label in self.exclude_apps:
+                continue
             try:
                 fn(self, model, model_admin)
             except Exception:
@@ -23,6 +25,7 @@ def for_all_model_admins(fn):
 
 class AdminSiteSmokeTest(TestCase):
     modeladmins = None
+    exclude_apps = []
     fixtures = ['django_admin_smoke_tests']
 
     single_attributes = ['date_hierarchy']

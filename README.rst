@@ -20,3 +20,7 @@ you can do following::
     from django_admin_smoke_tests import tests
     class AdminTest(tests.AdminSiteSmokeTest):
         fixtures = ['data']
+
+And you can exclude certain (external) apps with::
+
+    exclude_apps = ['constance',]
