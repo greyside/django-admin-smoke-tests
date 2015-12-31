@@ -36,3 +36,7 @@ you can do following:
 
     class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
         fixtures = ['data']
+
+And you can exclude certain (external) apps with::
+
+    exclude_apps = ['constance',]
