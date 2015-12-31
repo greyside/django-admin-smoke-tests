@@ -28,4 +28,13 @@ class PostAdmin(admin.ModelAdmin):
         return super(PostAdmin, self).formfield_for_foreignkey(db_field,
             request, **kwargs)
 
+    def get_queryset(self, request):
+        # test also queryset
+        return super(PostAdmin, self).get_queryset(request)
+
+    # For Django<=1.5
+    def queryset(self, request):
+        # test also queryset
+        return super(PostAdmin, self).queryset(request)
+
 admin.site.register(Post, PostAdmin)

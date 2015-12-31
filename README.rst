@@ -9,3 +9,18 @@ django-admin-smoke-tests
 
 Run with ``./manage.py test django_admin_smoke_tests.tests``.
 
+You don't have to add anything ``INSTALLED_APPS``
+
+Usage in your tests
+-------------------
+
+If you want to use admin smoke tests as part of your tests with data from fixtures,
+you can do following::
+
+    from django_admin_smoke_tests import tests
+    class AdminTest(tests.AdminSiteSmokeTest):
+        fixtures = ['data']
+
+And you can exclude certain (external) apps with::
+
+    exclude_apps = ['constance',]
