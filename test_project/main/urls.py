@@ -1,6 +1,10 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^posts/(?P<pk>.+)/$', lambda **kwargs: '', name="post-detail"),
-)
+    url(r'^hasprimaryslug/(?P<pk>[\w-]+)/$', lambda **kwargs: '',
+        name="hasprimaryslug-detail"),
+    url(r'^hasprimaryuuid/(?P<pk>[\w-]+)/$', lambda **kwargs: '',
+        name="hasprimaryuuid-detail"),
+]

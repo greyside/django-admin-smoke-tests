@@ -2,7 +2,7 @@
 from django.contrib import admin
 
 # App imports
-from .models import Channel, Post
+from .models import Channel, HasPrimarySlug, HasPrimaryUUID, Post
 
 
 class ChannelAdmin(admin.ModelAdmin):
@@ -29,3 +29,10 @@ class PostAdmin(admin.ModelAdmin):
             request, **kwargs)
 
 admin.site.register(Post, PostAdmin)
+
+
+admin.site.register(HasPrimarySlug)
+
+
+if HasPrimaryUUID:
+    admin.site.register(HasPrimaryUUID)

@@ -1,3 +1,5 @@
+import uuid
+
 # Django imports
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -79,3 +81,23 @@ class Post(_Abstract):
 
     def get_absolute_url(self):
         return reverse('post-detail', kwargs={'pk': self.pk})
+
+
+class HasPrimarySlug(models.Model):
+    slug = models.SlugField(primary_key=True)
+    title = models.CharField(max_length=140, unique=True)
+
+    def get_absolute_url(self):
+        return reverse('hasprimaryslug-detail', kwargs={'pk': self.pk})
+
+
+HasPrimaryUUID = None
+
+if hasattr(models, 'UUIDField'):
+    class HasPrimaryUUID(models.Model):
+        id = models.UUIDField(
+            primary_key=True, default=uuid.uuid4, editable=False)
+        title = models.CharField(max_length=140, unique=True)
+
+        def get_absolute_url(self):
+            return reverse('hasprimaryuuid-detail', kwargs={'pk': self.pk})

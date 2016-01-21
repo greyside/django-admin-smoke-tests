@@ -153,6 +153,7 @@ class AdminSiteSmokeTest(TestCase):
                 # Otherwise create a minimal instance
                 if not instance:
                     instance = model(pk=1)
+
                 # make sure no errors happen here
                 instance.get_absolute_url()
 
