@@ -9,3 +9,14 @@ django-admin-smoke-tests
 
 Run with ``./manage.py test django_admin_smoke_tests.tests``.
 
+Or import into your own code:
+
+.. code:: python
+
+    from django.test import TestCase
+    from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
+
+    class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
+        def setUp(self):
+            super(AdminSiteSmokeTest, self).setUp()
+            # custom setup goes here

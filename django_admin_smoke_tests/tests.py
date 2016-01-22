@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 
 
-class AdminSiteSmokeTest(TestCase):
+class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     fixtures = ['django_admin_smoke_tests']
 
@@ -30,7 +30,7 @@ class AdminSiteSmokeTest(TestCase):
     strip_minus_attrs = ('ordering',)
 
     def setUp(self):
-        super(AdminSiteSmokeTest, self).setUp()
+        super(AdminSiteSmokeTestMixin, self).setUp()
 
         self.superuser = auth.get_user_model().objects.create_superuser(
             'testuser', 'testuser@example.com', 'foo')
@@ -175,3 +175,7 @@ class AdminSiteSmokeTest(TestCase):
                 # this error is commonly raised by ModelAdmins that don't allow
                 # adding.
                 pass
+
+
+class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
+    pass
