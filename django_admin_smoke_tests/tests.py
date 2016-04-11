@@ -4,6 +4,7 @@ from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.test import TestCase
 from django.test.client import RequestFactory
+import django
 import sys
 
 
@@ -183,6 +184,8 @@ class AdminSiteSmokeTestMixin(object):
 
         # make sure no errors happen here
         response = model_admin.changelist_view(request)
+        response.render()
+
         self.assertEqual(response.status_code, 200)
 
     @for_all_model_admins
@@ -192,6 +195,27 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.add_view(request)
+            if response.__class__ == django.template.response.TemplateResponse:
+                response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # adding.
+            pass
+
+    @for_all_model_admins
+    def test_change_view(self, model, model_admin):
+        item = model.objects.last()
+        if not item or model._meta.proxy:
+            return
+        pk = item.pk
+        request = self.get_request()
+
+        # make sure no errors happen here
+        try:
+            response = model_admin.change_view(request, object_id=str(pk))
+            if response.__class__ == django.template.response.TemplateResponse:
+                response.render()
             self.assertEqual(response.status_code, 200)
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
