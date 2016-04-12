@@ -163,8 +163,6 @@ class AdminSiteSmokeTestMixin(object):
 
         # TODO: use model_mommy to generate a few instances to query against
         # make sure no errors happen here
-        if hasattr(model_admin, 'queryset'):
-            list(model_admin.queryset(request))
         if hasattr(model_admin, 'get_queryset'):
             list(model_admin.get_queryset(request))
 
