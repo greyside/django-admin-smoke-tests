@@ -2,6 +2,7 @@ import six
 
 from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
 import django
@@ -67,8 +68,9 @@ class AdminSiteSmokeTestMixin(object):
         except:
             pass
 
-    def get_request(self):
-        request = self.factory.get('/')
+    def get_request(self, params=None):
+        request = self.factory.get('/', params)
+
         request.user = self.superuser
         return request
 
@@ -184,6 +186,16 @@ class AdminSiteSmokeTestMixin(object):
     @for_all_model_admins
     def test_changelist_view(self, model, model_admin):
         request = self.get_request()
+
+        # make sure no errors happen here
+        response = model_admin.changelist_view(request)
+        response.render()
+
+        self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_changelist_view_search(self, model, model_admin):
+        request = self.get_request(params=QueryDict('q=test'))
 
         # make sure no errors happen here
         response = model_admin.changelist_view(request)
