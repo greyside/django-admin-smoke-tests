@@ -67,8 +67,10 @@ class AdminSiteSmokeTestMixin(object):
         except:
             pass
 
-    def get_request(self):
+    def get_request(self, params={}):
         request = self.factory.get('/')
+        request.GET = params
+
         request.user = self.superuser
         return request
 
@@ -184,6 +186,16 @@ class AdminSiteSmokeTestMixin(object):
     @for_all_model_admins
     def test_changelist_view(self, model, model_admin):
         request = self.get_request()
+
+        # make sure no errors happen here
+        response = model_admin.changelist_view(request)
+        response.render()
+
+        self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_changelist_view_search(self, model, model_admin):
+        request = self.get_request(params={'q': 'test'})
 
         # make sure no errors happen here
         response = model_admin.changelist_view(request)
