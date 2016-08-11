@@ -22,6 +22,8 @@ matrix:
   include:
     - python: "2.7"
       env: MODE=flake8
+    - python: "3.4"
+      env: DJANGO_VERSION=dj17
 
 cache:
   directories:
