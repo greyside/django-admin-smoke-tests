@@ -6,13 +6,12 @@ from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
 import django
-import sys
 
 
 class ModelAdminCheckException(Exception):
     def __init__(self, message, original_exception):
-        super().__init__(message)
         self.original_exception = original_exception
+        return super(ModelAdminCheckException, self).__init__(message)
 
 
 def for_all_model_admins(fn):
@@ -25,12 +24,11 @@ def for_all_model_admins(fn):
             try:
                 fn(self, model, model_admin)
             except Exception as e:
-                raise ModelAdminCheckException(
+                six.raise_from(ModelAdminCheckException(
                     "Above exception occured while running test '%s' "
                     "on modeladmin %s (%s)" %
                     (fn.__name__, model_admin, model.__name__),
-                    e).\
-                    with_traceback(sys.exc_info()[2])
+                    e), e)
     return test_deco
 
 

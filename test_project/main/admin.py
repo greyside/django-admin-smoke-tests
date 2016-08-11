@@ -1,6 +1,7 @@
 # Django imports
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
+import django
 
 # App imports
 from .models import Channel, HasPrimarySlug, HasPrimaryUUID,\
@@ -48,7 +49,9 @@ class PostAdmin(admin.ModelAdmin):
 
 class FailPostAdmin(admin.ModelAdmin):
     search_fields = ['nonexistent_field']
-    list_display = ['nonexistent_field']
+
+    if django.VERSION >= (1, 8):
+        list_display = ['nonexistent_field']
 
 
 class ForbiddenPostAdmin(admin.ModelAdmin):
