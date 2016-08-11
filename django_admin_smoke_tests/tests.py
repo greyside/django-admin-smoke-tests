@@ -86,10 +86,7 @@ class AdminSiteSmokeTestMixin(object):
 
     def get_fieldsets(self, model, model_admin):
         request = self.get_request()
-        try:
-            return model_admin.get_fieldsets(request, obj=model())
-        except AttributeError:
-            return model_admin.declared_fieldsets
+        return model_admin.get_fieldsets(request, obj=model())
 
     def get_attr_set(self, model, model_admin):
         attr_set = []
