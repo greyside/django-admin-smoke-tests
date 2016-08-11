@@ -4,28 +4,37 @@ from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.test import TestCase
 from django.test.client import RequestFactory
-import sys
+import django
+
+
+class ModelAdminCheckException(Exception):
+    def __init__(self, message, original_exception):
+        self.original_exception = original_exception
+        return super(ModelAdminCheckException, self).__init__(message)
 
 
 def for_all_model_admins(fn):
     def test_deco(self):
         for model, model_admin in self.modeladmins:
+            if model_admin.__class__ in self.exclude_modeladmins:
+                continue
             if model._meta.app_label in self.exclude_apps:
                 continue
             try:
                 fn(self, model, model_admin)
-            except Exception:
-                raise Exception(
-                    "Above exception occured while running test '%s'"
+            except Exception as e:
+                six.raise_from(ModelAdminCheckException(
+                    "Above exception occured while running test '%s' "
                     "on modeladmin %s (%s)" %
-                    (fn.__name__, model_admin, model.__name__)).\
-                    with_traceback(sys.exc_info()[2])
+                    (fn.__name__, model_admin, model.__name__),
+                    e), e)
     return test_deco
 
 
 class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps = []
+    exclude_modeladmins = []
     fixtures = ['django_admin_smoke_tests']
 
     single_attributes = ['date_hierarchy']
@@ -63,8 +72,10 @@ class AdminSiteSmokeTestMixin(object):
         except:
             pass
 
-    def get_request(self):
+    def get_request(self, params={}):
         request = self.factory.get('/')
+        request.GET = params
+
         request.user = self.superuser
         return request
 
@@ -163,8 +174,6 @@ class AdminSiteSmokeTestMixin(object):
 
         # TODO: use model_mommy to generate a few instances to query against
         # make sure no errors happen here
-        if hasattr(model_admin, 'queryset'):
-            list(model_admin.queryset(request))
         if hasattr(model_admin, 'get_queryset'):
             list(model_admin.get_queryset(request))
 
@@ -185,6 +194,18 @@ class AdminSiteSmokeTestMixin(object):
 
         # make sure no errors happen here
         response = model_admin.changelist_view(request)
+        response.render()
+
+        self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_changelist_view_search(self, model, model_admin):
+        request = self.get_request(params={'q': 'test'})
+
+        # make sure no errors happen here
+        response = model_admin.changelist_view(request)
+        response.render()
+
         self.assertEqual(response.status_code, 200)
 
     @for_all_model_admins
@@ -194,6 +215,27 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.add_view(request)
+            if response.__class__ == django.template.response.TemplateResponse:
+                response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # adding.
+            pass
+
+    @for_all_model_admins
+    def test_change_view(self, model, model_admin):
+        item = model.objects.last()
+        if not item or model._meta.proxy:
+            return
+        pk = item.pk
+        request = self.get_request()
+
+        # make sure no errors happen here
+        try:
+            response = model_admin.change_view(request, object_id=str(pk))
+            if response.__class__ == django.template.response.TemplateResponse:
+                response.render()
             self.assertEqual(response.status_code, 200)
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
