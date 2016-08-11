@@ -83,6 +83,10 @@ class Post(_Abstract):
         return reverse('post-detail', kwargs={'pk': self.pk})
 
 
+class FailPost(Post):
+    pass
+
+
 class HasPrimarySlug(models.Model):
     slug = models.SlugField(primary_key=True)
     title = models.CharField(max_length=140, unique=True)
