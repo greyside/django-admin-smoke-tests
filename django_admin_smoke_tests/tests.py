@@ -9,6 +9,12 @@ import django
 import sys
 
 
+class ModelAdminCheckException(Exception):
+    def __init__(self, message, original_exception):
+        super().__init__(message)
+        self.original_exception = original_exception
+
+
 def for_all_model_admins(fn):
     def test_deco(self):
         for model, model_admin in self.modeladmins:
@@ -18,11 +24,12 @@ def for_all_model_admins(fn):
                 continue
             try:
                 fn(self, model, model_admin)
-            except Exception:
-                raise Exception(
-                    "Above exception occured while running test '%s'"
+            except Exception as e:
+                raise ModelAdminCheckException(
+                    "Above exception occured while running test '%s' "
                     "on modeladmin %s (%s)" %
-                    (fn.__name__, model_admin, model.__name__)).\
+                    (fn.__name__, model_admin, model.__name__),
+                    e).\
                     with_traceback(sys.exc_info()[2])
     return test_deco
 
