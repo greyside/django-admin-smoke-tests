@@ -190,20 +190,28 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         # make sure no errors happen here
-        response = model_admin.changelist_view(request)
-        response.render()
-
-        self.assertEqual(response.status_code, 200)
+        try:
+            response = model_admin.changelist_view(request)
+            response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # changelist view
+            pass
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
         request = self.get_request(params=QueryDict('q=test'))
 
         # make sure no errors happen here
-        response = model_admin.changelist_view(request)
-        response.render()
-
-        self.assertEqual(response.status_code, 200)
+        try:
+            response = model_admin.changelist_view(request)
+            response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # changelist view.
+            pass
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
@@ -229,15 +237,10 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         # make sure no errors happen here
-        try:
-            response = model_admin.change_view(request, object_id=str(pk))
-            if response.__class__ == django.template.response.TemplateResponse:
-                response.render()
-            self.assertEqual(response.status_code, 200)
-        except PermissionDenied:
-            # this error is commonly raised by ModelAdmins that don't allow
-            # adding.
-            pass
+        response = model_admin.change_view(request, object_id=str(pk))
+        if response.__class__ == django.template.response.TemplateResponse:
+            response.render()
+        self.assertEqual(response.status_code, 200)
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):

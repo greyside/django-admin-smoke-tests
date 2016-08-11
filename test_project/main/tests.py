@@ -35,15 +35,3 @@ class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
 class ForbiddenAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
     exclude_modeladmins = [FailPostAdmin, PostAdmin, ChannelAdmin]
-
-    @for_all_model_admins
-    def test_changelist_view_search(self, model, model_admin):
-        with self.assertRaises(ModelAdminCheckException):
-            super(ForbiddenAdminSiteSmokeTest, self).\
-                test_changelist_view_search()
-
-    if django.VERSION >= (1, 8):
-        @for_all_model_admins
-        def test_changelist_view(self, model, model_admin):
-            with self.assertRaises(ModelAdminCheckException):
-                super(ForbiddenAdminSiteSmokeTest, self).test_changelist_view()
