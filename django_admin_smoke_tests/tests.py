@@ -221,7 +221,7 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.add_view(request)
-            if response.__class__ == django.template.response.TemplateResponse:
+            if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertEqual(response.status_code, 200)
         except PermissionDenied:
@@ -239,7 +239,7 @@ class AdminSiteSmokeTestMixin(object):
 
         # make sure no errors happen here
         response = model_admin.change_view(request, object_id=str(pk))
-        if response.__class__ == django.template.response.TemplateResponse:
+        if isinstance(response, django.template.response.TemplateResponse):
             response.render()
         self.assertEqual(response.status_code, 200)
 
