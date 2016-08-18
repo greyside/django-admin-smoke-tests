@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
 import django_admin_smoke_tests
+
+from setuptools import setup
 
 package_name = 'django_admin_smoke_tests'
 

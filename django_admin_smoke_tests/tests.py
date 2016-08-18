@@ -1,11 +1,12 @@
-import six
+import django
 
 from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
-import django
+
+import six
 
 
 class ModelAdminCheckException(Exception):

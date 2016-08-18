@@ -1,11 +1,12 @@
 # Django imports
-from django.contrib import admin
-from django.contrib.admin import SimpleListFilter
 import django
 
+from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
+
 # App imports
-from .models import Channel, HasPrimarySlug, HasPrimaryUUID,\
-    Post, FailPost, ForbiddenPost
+from .models import Channel, FailPost, ForbiddenPost,\
+    HasPrimarySlug, HasPrimaryUUID, Post
 
 
 class ChannelAdmin(admin.ModelAdmin):
