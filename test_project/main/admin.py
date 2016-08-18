@@ -18,6 +18,10 @@ class ListFilter(SimpleListFilter):
     title = "list_filter"
     parameter_name = "list_filter"
 
+    def __init__(self, request, params, model, model_admin):
+        super(ListFilter, self).__init__(request, params, model, model_admin)
+        self.lookup_val = request.GET.getlist('a')
+
     def lookups(self, request, model_admin):
         return ()
 
