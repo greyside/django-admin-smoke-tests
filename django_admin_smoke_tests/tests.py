@@ -1,7 +1,8 @@
 import django
 
 from django.contrib import admin, auth
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
+    ValidationError
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -78,6 +79,13 @@ class AdminSiteSmokeTestMixin(object):
         request = self.factory.get('/', params)
 
         request.user = self.superuser
+        return request
+
+    def post_request(self, post_data={}, params=None):
+        request = self.factory.post('/', params, post_data=post_data)
+
+        request.user = self.superuser
+        request._dont_enforce_csrf_checks = True
         return request
 
     def strip_minus(self, attr, val):
@@ -242,6 +250,24 @@ class AdminSiteSmokeTestMixin(object):
         if isinstance(response, django.template.response.TemplateResponse):
             response.render()
         self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_change_post(self, model, model_admin):
+        item = model.objects.last()
+        if not item or model._meta.proxy:
+            return
+        pk = item.pk
+        # TODO: If we generate default post_data for post request,
+        # the test would be stronger
+        request = self.post_request()
+        try:
+            response = model_admin.change_view(request, object_id=str(pk))
+            if isinstance(response, django.template.response.TemplateResponse):
+                response.render()
+            self.assertEqual(response.status_code, 200)
+        except ValidationError:
+            # This the form was sent, but did not pass it's validation
+            pass
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
