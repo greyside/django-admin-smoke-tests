@@ -15,11 +15,14 @@ def for_all_model_admins(fn):
             try:
                 fn(self, model, model_admin)
             except Exception:
-                raise Exception(
-                    "Above exception occured while running test '%s'"
-                    "on modeladmin %s (%s)" %
-                    (fn.__name__, model_admin, model.__name__)).\
-                    with_traceback(sys.exc_info()[2])
+                msg = ("Above exception occured while running test "
+                       "'%s' on modeladmin %s (%s)" %
+                       (fn.__name__, model_admin, model.__name__))
+                if hasattr(Exception, 'with_traceback'):  # Python 3.x only
+                    raise Exception(msg).with_traceback(sys.exc_info()[2])
+                else:
+                    print msg
+                    raise
     return test_deco
 
 
