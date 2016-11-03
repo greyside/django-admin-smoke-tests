@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
 import django_admin_smoke_tests
+
+from setuptools import setup
 
 package_name = 'django_admin_smoke_tests'
 
@@ -17,7 +18,7 @@ def runtests():
     os.environ['DJANGO_SETTINGS_MODULE'] = 'test_project.settings'
     if django.VERSION[0] == 1 and django.VERSION[1] >= 7:
         django.setup()
-    call_command('test', 'django_admin_smoke_tests')
+    call_command('test', 'test_project.main.tests')
     sys.exit()
 
 setup(name='django-admin-smoke-tests',

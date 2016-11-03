@@ -1,31 +1,43 @@
-import six
+import django
 
 from django.contrib import admin, auth
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
+    ValidationError
+from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
-import sys
+
+import six
+
+
+class ModelAdminCheckException(Exception):
+    def __init__(self, message, original_exception):
+        self.original_exception = original_exception
+        return super(ModelAdminCheckException, self).__init__(message)
 
 
 def for_all_model_admins(fn):
     def test_deco(self):
         for model, model_admin in self.modeladmins:
+            if model_admin.__class__ in self.exclude_modeladmins:
+                continue
             if model._meta.app_label in self.exclude_apps:
                 continue
             try:
                 fn(self, model, model_admin)
-            except Exception:
-                raise Exception(
-                    "Above exception occured while running test '%s'"
+            except Exception as e:
+                six.raise_from(ModelAdminCheckException(
+                    "Above exception occured while running test '%s' "
                     "on modeladmin %s (%s)" %
-                    (fn.__name__, model_admin, model.__name__)).\
-                    with_traceback(sys.exc_info()[2])
+                    (fn.__name__, model_admin, model.__name__),
+                    e), e)
     return test_deco
 
 
 class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps = []
+    exclude_modeladmins = []
     fixtures = ['django_admin_smoke_tests']
 
     single_attributes = ['date_hierarchy']
@@ -63,9 +75,17 @@ class AdminSiteSmokeTestMixin(object):
         except:
             pass
 
-    def get_request(self):
-        request = self.factory.get('/')
+    def get_request(self, params=None):
+        request = self.factory.get('/', params)
+
         request.user = self.superuser
+        return request
+
+    def post_request(self, post_data={}, params=None):
+        request = self.factory.post('/', params, post_data=post_data)
+
+        request.user = self.superuser
+        request._dont_enforce_csrf_checks = True
         return request
 
     def strip_minus(self, attr, val):
@@ -75,10 +95,7 @@ class AdminSiteSmokeTestMixin(object):
 
     def get_fieldsets(self, model, model_admin):
         request = self.get_request()
-        try:
-            return model_admin.get_fieldsets(request, obj=model())
-        except AttributeError:
-            return model_admin.declared_fieldsets
+        return model_admin.get_fieldsets(request, obj=model())
 
     def get_attr_set(self, model, model_admin):
         attr_set = []
@@ -163,8 +180,6 @@ class AdminSiteSmokeTestMixin(object):
 
         # TODO: use model_mommy to generate a few instances to query against
         # make sure no errors happen here
-        if hasattr(model_admin, 'queryset'):
-            list(model_admin.queryset(request))
         if hasattr(model_admin, 'get_queryset'):
             list(model_admin.get_queryset(request))
 
@@ -184,8 +199,28 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         # make sure no errors happen here
-        response = model_admin.changelist_view(request)
-        self.assertEqual(response.status_code, 200)
+        try:
+            response = model_admin.changelist_view(request)
+            response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # changelist view
+            pass
+
+    @for_all_model_admins
+    def test_changelist_view_search(self, model, model_admin):
+        request = self.get_request(params=QueryDict('q=test'))
+
+        # make sure no errors happen here
+        try:
+            response = model_admin.changelist_view(request)
+            response.render()
+            self.assertEqual(response.status_code, 200)
+        except PermissionDenied:
+            # this error is commonly raised by ModelAdmins that don't allow
+            # changelist view.
+            pass
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
@@ -194,10 +229,44 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.add_view(request)
+            if isinstance(response, django.template.response.TemplateResponse):
+                response.render()
             self.assertEqual(response.status_code, 200)
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
             # adding.
+            pass
+
+    @for_all_model_admins
+    def test_change_view(self, model, model_admin):
+        item = model.objects.last()
+        if not item or model._meta.proxy:
+            return
+        pk = item.pk
+        request = self.get_request()
+
+        # make sure no errors happen here
+        response = model_admin.change_view(request, object_id=str(pk))
+        if isinstance(response, django.template.response.TemplateResponse):
+            response.render()
+        self.assertEqual(response.status_code, 200)
+
+    @for_all_model_admins
+    def test_change_post(self, model, model_admin):
+        item = model.objects.last()
+        if not item or model._meta.proxy:
+            return
+        pk = item.pk
+        # TODO: If we generate default post_data for post request,
+        # the test would be stronger
+        request = self.post_request()
+        try:
+            response = model_admin.change_view(request, object_id=str(pk))
+            if isinstance(response, django.template.response.TemplateResponse):
+                response.render()
+            self.assertEqual(response.status_code, 200)
+        except ValidationError:
+            # This the form was sent, but did not pass it's validation
             pass
 
 

@@ -1,10 +1,10 @@
 import uuid
 
 # Django imports
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from django.conf import settings
 
 
 class _Abstract(models.Model):
@@ -81,6 +81,14 @@ class Post(_Abstract):
 
     def get_absolute_url(self):
         return reverse('post-detail', kwargs={'pk': self.pk})
+
+
+class ForbiddenPost(Post):
+    pass
+
+
+class FailPost(Post):
+    pass
 
 
 class HasPrimarySlug(models.Model):

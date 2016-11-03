@@ -37,6 +37,7 @@ you can do following:
     class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
         fixtures = ['data']
 
-And you can exclude certain (external) apps with::
+And you can exclude certain (external) apps or model admins with::
 
     exclude_apps = ['constance',]
+    exclude_modeladmins = [apps.admin.ModelAdmin]
