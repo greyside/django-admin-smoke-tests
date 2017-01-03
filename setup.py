@@ -21,7 +21,9 @@ def runtests():
     call_command('test', 'test_project.main.tests')
     sys.exit()
 
-setup(name='django-admin-smoke-tests',
+
+setup(
+    name='django-admin-smoke-tests',
     version=django_admin_smoke_tests.__version__,
     description="Runs some quick tests on your admin site objects to make sure \
 there aren't non-existant fields listed, etc.",
@@ -34,7 +36,7 @@ there aren't non-existant fields listed, etc.",
         "Programming Language :: Python",
         "Topic :: Software Development :: Build Tools",
         "Topic :: Software Development :: Libraries",
-        "Topic :: Software Development :: Libraries :: Python Modules"
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords='django admin smoke test',
     url='https://github.com/SeanHayes/django-admin-smoke-tests',
