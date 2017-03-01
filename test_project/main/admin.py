@@ -12,6 +12,7 @@ from .models import Channel, FailPost, ForbiddenPost,\
 class ChannelAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
 
+
 admin.site.register(Channel, ChannelAdmin)
 
 
