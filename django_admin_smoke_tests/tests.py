@@ -57,7 +57,6 @@ class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps = []
     exclude_modeladmins = []
-    fixtures = ['django_admin_smoke_tests']
 
     single_attributes = ['date_hierarchy']
     iter_attributes = [
