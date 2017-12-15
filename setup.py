@@ -23,7 +23,7 @@ def runtests():
 
 
 setup(
-    name='django-admin-smoke-tests',
+    name='django-admin-smoke-tests-2',
     version=django_admin_smoke_tests.__version__,
     description="Runs some quick tests on your admin site objects to make sure \
 there aren't non-existant fields listed, etc.",

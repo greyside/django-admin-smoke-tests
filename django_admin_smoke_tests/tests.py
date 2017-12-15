@@ -57,7 +57,6 @@ class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps = []
     exclude_modeladmins = []
-    fixtures = ['django_admin_smoke_tests']
 
     single_attributes = ['date_hierarchy']
     iter_attributes = [
@@ -181,6 +180,7 @@ class AdminSiteSmokeTestMixin(object):
             has_form_field = attr in form_field_names
             has_model_class_attr = hasattr(model_instance.__class__, attr)
             has_admin_attr = hasattr(model_admin, attr)
+            has_reverse_accessor = hasattr(model_instance, attr + '_set')
 
             try:
                 has_model_attr = hasattr(model_instance, attr)
@@ -188,7 +188,8 @@ class AdminSiteSmokeTestMixin(object):
                 has_model_attr = attr in model_instance.__dict__
 
             has_field_or_attr = has_model_field or has_form_field or\
-                has_model_attr or has_admin_attr or has_model_class_attr
+                has_model_attr or has_admin_attr or has_model_class_attr\
+                or has_reverse_accessor
 
             self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' %
                 (attr, model, model_admin,))
