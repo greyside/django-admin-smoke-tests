@@ -1,6 +1,14 @@
-========================
-django-admin-smoke-tests
-========================
+=========================
+django-admin-smoke-tests-2
+=========================
+
+Fork of ``django-admin-smoke-tests``
+
+
+Installation
+------------
+
+``pip install django-admin-smoke-tests-2``
 
 .. image:: https://travis-ci.org/greyside/django-admin-smoke-tests.svg?branch=master
     :target: https://travis-ci.org/greyside/django-admin-smoke-tests
@@ -41,3 +49,4 @@ And you can exclude certain (external) apps or model admins with::
 
     exclude_apps = ['constance',]
     exclude_modeladmins = [apps.admin.ModelAdmin]
+
