@@ -88,10 +88,7 @@ class AdminSiteSmokeTestMixin(object):
         if not self.modeladmins:
             self.modeladmins = admin.site._registry.items()
 
-        try:
-            admin.autodiscover()
-        except:
-            pass
+        admin.autodiscover()
 
     def get_request(self, params=None):
         request = self.factory.get('/', params)
