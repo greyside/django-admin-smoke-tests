@@ -42,7 +42,6 @@ install:
     - pip install -U pip
     - pip install -U wheel virtualenv
     - pip install tox coveralls
-    - python setup.py install
 
 after_success:
     - coveralls
