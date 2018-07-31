@@ -55,10 +55,12 @@ class PostAdmin(admin.ModelAdmin):
 
 
 class FailPostAdmin(admin.ModelAdmin):
+    """ Admin, that should fail if it is not excluded from the smoke tests """
     search_fields = ['nonexistent_field']
+    list_display = ['fail_field']
 
-    if django.VERSION >= (1, 8):
-        list_display = ['nonexistent_field']
+    def fail_field(self, obj):
+        raise Exception
 
 
 class ForbiddenPostAdmin(admin.ModelAdmin):
