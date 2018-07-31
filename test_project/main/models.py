@@ -2,7 +2,10 @@ import uuid
 
 # Django imports
 from django.conf import settings
-from django.core.urlresolvers import reverse
+try:
+    from django.urls import reverse
+except ImportError:
+    from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
@@ -51,8 +54,11 @@ class Post(_Abstract):
         (1, 'Published',),
     ]
 
-    channel = models.ForeignKey(Channel)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL)
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
     status = models.IntegerField(max_length=1, default=0, choices=STATUSES)
     custom_summary = models.TextField(default='')
     created = models.DateTimeField(auto_now_add=True, editable=False)

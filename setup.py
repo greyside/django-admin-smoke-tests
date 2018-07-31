@@ -16,8 +16,7 @@ def runtests():
     from django.core.management import call_command
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'test_project.settings'
-    if django.VERSION[0] == 1 and django.VERSION[1] >= 7:
-        django.setup()
+    django.setup()
     call_command('test', 'test_project.main.tests')
     sys.exit()
 
