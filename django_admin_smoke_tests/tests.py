@@ -1,7 +1,6 @@
 import sys
 
 import django
-
 from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
     ValidationError

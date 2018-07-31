@@ -1,6 +1,4 @@
 # Django imports
-import django
-
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 
@@ -35,8 +33,10 @@ class PostAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     list_editable = ['status']
     list_display = ('title', 'author', 'status', 'modified', 'published',)
-    list_filter = ('author', 'status', 'channel', 'created', 'modified',
-        'published', ListFilter)
+    list_filter = (
+        'author', 'status', 'channel', 'created', 'modified',
+        'published', ListFilter,
+    )
     readonly_fields = ['created', 'modified', 'time_diff']
     ordering = ('title', '-id',)
     fieldsets = [('Fielset', {
@@ -49,8 +49,9 @@ class PostAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'author':
             db_field.default = request.user
-        return super(PostAdmin, self).formfield_for_foreignkey(db_field,
-            request, **kwargs)
+        return super(PostAdmin, self).formfield_for_foreignkey(
+            db_field, request, **kwargs
+        )
 
 
 class FailPostAdmin(admin.ModelAdmin):

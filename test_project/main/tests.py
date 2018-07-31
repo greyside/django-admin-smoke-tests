@@ -1,9 +1,8 @@
-import django
-
 from django.test import TestCase
 
 from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin,\
     ModelAdminCheckException, for_all_model_admins
+
 from .admin import ChannelAdmin, FailPostAdmin, ForbiddenPostAdmin, PostAdmin
 
 

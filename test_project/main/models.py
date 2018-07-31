@@ -28,11 +28,16 @@ class Channel(_Abstract):
         (1, 'Author'),
     )
 
-    public = models.BooleanField(default=True,
-        help_text="If False, only followers will be able to see content.")
+    public = models.BooleanField(
+        default=True,
+        help_text="If False, only followers will be able to see content.",
+    )
 
-    enrollment = models.IntegerField(max_length=1, default=0,
-        choices=ENROLLMENTS)
+    enrollment = models.IntegerField(
+        max_length=1,
+        default=0,
+        choices=ENROLLMENTS,
+    )
 
     class Meta:
         ordering = ['title']
