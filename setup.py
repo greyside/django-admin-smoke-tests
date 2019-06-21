@@ -43,8 +43,9 @@ there aren't non-existant fields listed, etc.",
     download_url="https://github.com/SeanHayes/django-admin-smoke-tests",
     license="BSD",
     install_requires=[
-        "django>=1.6",
-        "six",
+        'django>=1.6',
+        'six',
+        'model_mommy',
     ],
     packages=[
         package_name,
