@@ -3,10 +3,15 @@ from typing import List
 import django
 import six
 from django.contrib import admin, auth
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
+    ValidationError
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
+
+import six
+from model_mommy import mommy
 
 
 def for_all_model_admins(fn):
@@ -176,7 +181,13 @@ class AdminSiteSmokeTestMixin(object):
     def queryset_func(self, model, model_admin):
         request = self.get_request()
 
-        # TODO: use model_mommy to generate a few instances to query against
+        with transaction.atomic():
+            try:
+                items = mommy.make(model, _quantity=5)
+            except Exception as e:
+                print("Not able to create %s data for queryset test:" % model)
+                print("\t%s" % str(e).replace("\n", "\n\t"))
+
         # make sure no errors happen here
         if hasattr(model_admin, "get_queryset"):
             list(model_admin.get_queryset(request))
@@ -201,6 +212,13 @@ class AdminSiteSmokeTestMixin(object):
 
     def changelist_view_func(self, model, model_admin):
         request = self.get_request()
+
+        with transaction.atomic():
+            try:
+                items = mommy.make(model, _quantity=5)
+            except Exception as e:
+                print("Not able to create %s data for changelist view:" % model)
+                print("\t%s" % str(e).replace("\n", "\n\t"))
 
         # make sure no errors happen here
         try:
@@ -270,11 +288,17 @@ class AdminSiteSmokeTestMixin(object):
 
     def change_post_func(self, model, model_admin):
         item = model.objects.last()
-        if not item or model._meta.proxy:
+        if not item:
+            with transaction.atomic():
+                try:
+                    item = mommy.make(model)
+                except Exception as e:
+                    print("Not able to create %s, skipping smoke test: change view with data:" % model)
+                    print("\t%s" % str(e).replace("\n", "\n\t"))
+                    return
+        if model._meta.proxy:
             return
         pk = item.pk
-        # TODO: If we generate default post_data for post request,
-        # the test would be stronger
         request = self.post_request()
         try:
             response = model_admin.change_view(request, object_id=str(pk))
