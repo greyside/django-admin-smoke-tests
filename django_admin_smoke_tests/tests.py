@@ -224,7 +224,7 @@ class AdminSiteSmokeTestMixin(object):
         try:
             response = model_admin.changelist_view(request)
             response.render()
-            self.assertEqual(response.status_code, 200)
+            self.assertIn(response.status_code, [200, 302])
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
             # changelist view
@@ -241,7 +241,7 @@ class AdminSiteSmokeTestMixin(object):
         try:
             response = model_admin.changelist_view(request)
             response.render()
-            self.assertEqual(response.status_code, 200)
+            self.assertIn(response.status_code, [200, 302])
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
             # changelist view.
@@ -259,7 +259,7 @@ class AdminSiteSmokeTestMixin(object):
             response = model_admin.add_view(request)
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
-            self.assertEqual(response.status_code, 200)
+            self.assertIn(response.status_code, [200, 302])
         except PermissionDenied:
             # this error is commonly raised by ModelAdmins that don't allow
             # adding.
@@ -280,7 +280,7 @@ class AdminSiteSmokeTestMixin(object):
         response = model_admin.change_view(request, object_id=str(pk))
         if isinstance(response, django.template.response.TemplateResponse):
             response.render()
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, [200, 302])
 
     @for_all_model_admins
     def test_change_post(self, model, model_admin):
@@ -304,10 +304,12 @@ class AdminSiteSmokeTestMixin(object):
             response = model_admin.change_view(request, object_id=str(pk))
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
-            self.assertEqual(response.status_code, 200)
-        except ValidationError:
+            self.assertIn(response.status_code, [200, 302])
+
+        except ValidationError as e:
             # This the form was sent, but did not pass it's validation
-            pass
+            print("Validation error in model %s, skipping smoke test: change view with data:" % model)
+            print("\t%s" % str(e).replace("\n", "\n\t"))
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
