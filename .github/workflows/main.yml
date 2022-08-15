@@ -1,0 +1,116 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  tests:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+        
+    strategy:
+      matrix:
+        DJANGO_VERSION: [ '22', '30', '31', '32', '40', '41']
+        PYTHON_VERSION: ['3.7', '3.8', '3.9', '3.10']
+        exclude:
+          - DJANGO_VERSION: '41'
+            PYTHON_VERSION: '3.7'
+          - DJANGO_VERSION: '40'
+            PYTHON_VERSION: '3.7'
+          - DJANGO_VERSION: '31'
+            PYTHON_VERSION: '3.10'
+          - DJANGO_VERSION: '30'
+            PYTHON_VERSION: '3.10'
+          - DJANGO_VERSION: '22'
+            PYTHON_VERSION: '3.10'
+      fail-fast: false
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python ${{ matrix.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+              python-version: ${{ matrix.PYTHON_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: smoke-tests-${{ hashFiles('setup.py') }}-${{ matrix.DJANGO_VERSION }}
+
+      - name: Install
+        run: |
+           pip install -U pip
+           pip install -U wheel virtualenv
+           pip install tox coveralls
+           python setup.py install
+
+      - name: Testing
+        run: |
+          coverage erase
+          export PYTHON_VER= && tox -e py`echo ${{matrix.PYTHON_VERSION}} | sed s/\\\.//g`-dj${{matrix.DJANGO_VERSION}}
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+      - name: Upload coverage
+        run: |
+          coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  flake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Running Flake8
+        run: |
+          pip install flake8
+          flake8
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Running isort
+        run: |
+          pip install isort
+          python -m isort . --check-only --diff
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Running black
+        run: |
+          pip install black
+          black --check .
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Running mypy
+        run: |
+          pip install mypy django-stubs types-six
+          mypy django_admin_smoke_tests
