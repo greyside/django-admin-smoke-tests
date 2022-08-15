@@ -1,4 +1,3 @@
-import sys
 from typing import List
 
 import django
@@ -26,39 +25,14 @@ def for_all_model_admins(fn):
             try:
                 fn(self, model, model_admin)
             except Exception as e:
-                if six.PY2:
-                    # Approximate Py3's `raise ModelAdminCheckException from e`
-                    # by raising e's traceback with some extra information
-                    # prepended to the error message.  Specifically handle PY2
-                    # this way because `six.raise_from` just throws away the
-                    # second argument and swallows the original exception under
-                    # PY2.
-                    six.reraise(
-                        ModelAdminCheckException(
-                            "%s occured while running test '%s' "
-                            "on modeladmin %s (%s): %s"
-                            % (
-                                e.__class__.__name__,
-                                fn.__name__,
-                                model_admin,
-                                model.__name__,
-                                e,
-                            ),
-                            e,
-                        ),
-                        None,
-                        sys.exc_info()[2],
-                    )
-                else:
-                    six.raise_from(
-                        ModelAdminCheckException(
-                            "Above exception occured while running test '%s' "
-                            "on modeladmin %s (%s)"
-                            % (fn.__name__, model_admin, model.__name__),
-                            e,
-                        ),
+                six.raise_from(
+                    ModelAdminCheckException(
+                        f"Above exception occured while running test '{fn.__name__}' "
+                        "on modeladmin {model_admin} ({model.__name__})",
                         e,
-                    )
+                    ),
+                    e,
+                )
 
     return test_deco
 
