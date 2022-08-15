@@ -38,7 +38,7 @@ you can override the ``fixtures`` attribute:
     from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
 
     class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
-        fixtures = ['data', 'django_admin_smoke_tests']
+        fixtures = ['testing_data']
 
 And you can also exclude certain (e.g. external) apps or model admins with class attributes:
 
