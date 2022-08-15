@@ -17,22 +17,10 @@ class ModelAdminCheckException(Exception):
 
 def for_all_model_admins(fn):
     def test_deco(self):
-        for model, model_admin in self.modeladmins:
-            if model_admin.__class__ in self.exclude_modeladmins:
-                continue
-            if model._meta.app_label in self.exclude_apps:
-                continue
-            try:
+        modeladmins = self.get_modeladmins()
+        for model, model_admin in modeladmins:
+            with self.subTest(f"{model.__module__}.{model.__name__} {model_admin}"):
                 fn(self, model, model_admin)
-            except Exception as e:
-                six.raise_from(
-                    ModelAdminCheckException(
-                        f"Above exception occured while running test '{fn.__name__}' "
-                        "on modeladmin {model_admin} ({model.__name__})",
-                        e,
-                    ),
-                    e,
-                )
 
     return test_deco
 
@@ -62,6 +50,22 @@ class AdminSiteSmokeTestMixin(object):
 
     strip_minus_attrs = ("ordering",)
 
+    def get_modeladmins(self):
+        if not self.modeladmins:
+            modeladmins = admin.site._registry.items()
+        else:
+            modeladmins = self.modeladmins
+
+        modeladmins = [
+            (model, model_admin)
+            for (model, model_admin) in modeladmins
+            if (
+                model_admin.__class__ not in self.exclude_modeladmins
+                and model._meta.app_label not in self.exclude_apps
+            )
+        ]
+        return modeladmins
+
     def setUp(self):
         super(AdminSiteSmokeTestMixin, self).setUp()
 
@@ -70,9 +74,6 @@ class AdminSiteSmokeTestMixin(object):
         )
 
         self.factory = RequestFactory()
-
-        if not self.modeladmins:
-            self.modeladmins = admin.site._registry.items()
 
         admin.autodiscover()
 
@@ -129,6 +130,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_specified_fields(self, model, model_admin):
+        self.specified_fields_func(model, model_admin)
+
+    def specified_fields_func(self, model, model_admin):
         attr_set = self.get_attr_set(model, model_admin)
 
         # FIXME: not all attributes can be used everywhere (e.g. you can't
@@ -173,6 +177,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_queryset(self, model, model_admin):
+        self.queryset_func(model, model_admin)
+
+    def queryset_func(self, model, model_admin):
         request = self.get_request()
 
         # TODO: use model_mommy to generate a few instances to query against
@@ -182,6 +189,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_get_absolute_url(self, model, model_admin):
+        self.get_absolute_url_func(model, model_admin)
+
+    def get_absolute_url_func(self, model, model_admin):
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
             instance = model.objects.first()
@@ -193,6 +203,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_changelist_view(self, model, model_admin):
+        self.changelist_view_func(model, model_admin)
+
+    def changelist_view_func(self, model, model_admin):
         request = self.get_request()
 
         # make sure no errors happen here
@@ -207,6 +220,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
+        self.changelist_view_search_func(model, model_admin)
+
+    def changelist_view_search_func(self, model, model_admin):
         request = self.get_request(params=QueryDict("q=test"))
 
         # make sure no errors happen here
@@ -221,6 +237,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
+        self.add_view_func(model, model_admin)
+
+    def add_view_func(self, model, model_admin):
         request = self.get_request()
 
         # make sure no errors happen here
@@ -236,6 +255,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_change_view(self, model, model_admin):
+        self.change_view_func(model, model_admin)
+
+    def change_view_func(self, model, model_admin):
         item = model.objects.last()
         if not item or model._meta.proxy:
             return
@@ -250,6 +272,9 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_change_post(self, model, model_admin):
+        self.change_post_func(model, model_admin)
+
+    def change_post_func(self, model, model_admin):
         item = model.objects.last()
         if not item or model._meta.proxy:
             return
