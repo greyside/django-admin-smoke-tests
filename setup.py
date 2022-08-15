@@ -45,7 +45,7 @@ there aren't non-existant fields listed, etc.",
     install_requires=[
         'django>=1.6',
         'six',
-        'model_mommy',
+        'model_bakery',
     ],
     packages=[
         package_name,
