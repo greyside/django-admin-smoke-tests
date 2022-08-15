@@ -3,15 +3,12 @@ from typing import List
 import django
 import six
 from django.contrib import admin, auth
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
-    ValidationError
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
-
-import six
-from model_mommy import mommy
+from model_bakery import baker
 
 
 def for_all_model_admins(fn):
@@ -81,6 +78,18 @@ class AdminSiteSmokeTestMixin(object):
 
         request.user = self.superuser
         return request
+
+    def create_models(self, model, model_admin, view_string, quantity=1):
+        if quantity == 1:
+            return baker.make(model)
+        return baker.make(model, _quantity=quantity)
+
+    def prepare_models(self, model, model_admin, view_string, quantity=1):
+        try:
+            return self.create_models(model, model_admin, view_string, quantity)
+        except Exception as e:
+            print(f"Not able to create {model} data for {view_string}:")
+            print("\t%s" % str(e).replace("\n", "\n\t"))
 
     def post_request(self, post_data={}, params=None):
         request = self.factory.post("/", params, post_data=post_data)
@@ -182,11 +191,9 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         with transaction.atomic():
-            try:
-                items = mommy.make(model, _quantity=5)
-            except Exception as e:
-                print("Not able to create %s data for queryset test:" % model)
-                print("\t%s" % str(e).replace("\n", "\n\t"))
+            items = self.prepare_models(
+                model, model_admin, "queryset tests", quantity=5
+            )
 
         # make sure no errors happen here
         if hasattr(model_admin, "get_queryset"):
@@ -214,11 +221,9 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         with transaction.atomic():
-            try:
-                items = mommy.make(model, _quantity=5)
-            except Exception as e:
-                print("Not able to create %s data for changelist view:" % model)
-                print("\t%s" % str(e).replace("\n", "\n\t"))
+            items = self.prepare_models(
+                model, model_admin, "changelist view", quantity=5
+            )
 
         # make sure no errors happen here
         try:
@@ -290,11 +295,8 @@ class AdminSiteSmokeTestMixin(object):
         item = model.objects.last()
         if not item:
             with transaction.atomic():
-                try:
-                    item = mommy.make(model)
-                except Exception as e:
-                    print("Not able to create %s, skipping smoke test: change view with data:" % model)
-                    print("\t%s" % str(e).replace("\n", "\n\t"))
+                item = self.prepare_models(model, model_admin, "change post view")
+                if item is None:
                     return
         if model._meta.proxy:
             return
@@ -308,8 +310,10 @@ class AdminSiteSmokeTestMixin(object):
 
         except ValidationError as e:
             # This the form was sent, but did not pass it's validation
-            print("Validation error in model %s, skipping smoke test: change view with data:" % model)
-            print("\t%s" % str(e).replace("\n", "\n\t"))
+            print(
+                f"Validation error in model {model}, skipping smoke test: change view with data:"
+            )
+            print("\t" + str(e).replace("\n", "\n\t"))
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
