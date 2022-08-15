@@ -40,7 +40,6 @@ class Channel(_Abstract):
     )
 
     enrollment = models.IntegerField(
-        max_length=1,
         default=0,
         choices=ENROLLMENTS,
     )
@@ -68,11 +67,11 @@ class Post(_Abstract):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
-    status = models.IntegerField(max_length=1, default=0, choices=STATUSES)
+    status = models.IntegerField(default=0, choices=STATUSES)
     custom_summary = models.TextField(default="")
     created = models.DateTimeField(auto_now_add=True, editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
-    published = models.DateTimeField(default=timezone.now())
+    published = models.DateTimeField(default=timezone.now)
 
     @property
     def teaser(self):
