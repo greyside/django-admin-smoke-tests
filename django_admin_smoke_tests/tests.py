@@ -191,9 +191,7 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         with transaction.atomic():
-            items = self.prepare_models(
-                model, model_admin, "queryset tests", quantity=5
-            )
+            self.prepare_models(model, model_admin, "queryset tests", quantity=5)
 
         # make sure no errors happen here
         if hasattr(model_admin, "get_queryset"):
@@ -221,9 +219,7 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request()
 
         with transaction.atomic():
-            items = self.prepare_models(
-                model, model_admin, "changelist view", quantity=5
-            )
+            self.prepare_models(model, model_admin, "changelist view", quantity=5)
 
         # make sure no errors happen here
         try:
