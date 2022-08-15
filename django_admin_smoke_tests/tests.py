@@ -1,15 +1,13 @@
 import sys
+from typing import List
 
 import django
-
+import six
 from django.contrib import admin, auth
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied,\
-    ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
-
-import six
 
 
 class ModelAdminCheckException(Exception):
@@ -35,80 +33,89 @@ def for_all_model_admins(fn):
                     # this way because `six.raise_from` just throws away the
                     # second argument and swallows the original exception under
                     # PY2.
-                    six.reraise(ModelAdminCheckException(
-                        "%s occured while running test '%s' "
-                        "on modeladmin %s (%s): %s" % (
-                            e.__class__.__name__,
-                            fn.__name__,
-                            model_admin,
-                            model.__name__,
-                            e),
-                        e), None, sys.exc_info()[2])
+                    six.reraise(
+                        ModelAdminCheckException(
+                            "%s occured while running test '%s' "
+                            "on modeladmin %s (%s): %s"
+                            % (
+                                e.__class__.__name__,
+                                fn.__name__,
+                                model_admin,
+                                model.__name__,
+                                e,
+                            ),
+                            e,
+                        ),
+                        None,
+                        sys.exc_info()[2],
+                    )
                 else:
-                    six.raise_from(ModelAdminCheckException(
-                        "Above exception occured while running test '%s' "
-                        "on modeladmin %s (%s)" %
-                        (fn.__name__, model_admin, model.__name__),
-                        e), e)
+                    six.raise_from(
+                        ModelAdminCheckException(
+                            "Above exception occured while running test '%s' "
+                            "on modeladmin %s (%s)"
+                            % (fn.__name__, model_admin, model.__name__),
+                            e,
+                        ),
+                        e,
+                    )
+
     return test_deco
 
 
 class AdminSiteSmokeTestMixin(object):
     modeladmins = None
-    exclude_apps = []
-    exclude_modeladmins = []
-    fixtures = ['django_admin_smoke_tests']
+    exclude_apps: List[str] = []
+    exclude_modeladmins: List[str] = []
 
-    single_attributes = ['date_hierarchy']
+    single_attributes = ["date_hierarchy"]
     iter_attributes = [
-        'filter_horizontal',
-        'filter_vertical',
-        'list_display',
-        'list_display_links',
-        'list_editable',
-        'list_filter',
-        'readonly_fields',
-        'search_fields',
+        "filter_horizontal",
+        "filter_vertical",
+        "list_display",
+        "list_display_links",
+        "list_editable",
+        "list_filter",
+        "readonly_fields",
+        "search_fields",
     ]
     iter_or_falsy_attributes = [
-        'exclude',
-        'fields',
-        'ordering',
+        "exclude",
+        "fields",
+        "ordering",
     ]
 
-    strip_minus_attrs = ('ordering',)
+    strip_minus_attrs = ("ordering",)
 
     def setUp(self):
         super(AdminSiteSmokeTestMixin, self).setUp()
 
         self.superuser = auth.get_user_model().objects.create_superuser(
-            'testuser', 'testuser@example.com', 'foo')
+            "testuser", "testuser@example.com", "foo"
+        )
 
         self.factory = RequestFactory()
 
         if not self.modeladmins:
             self.modeladmins = admin.site._registry.items()
 
-        try:
-            admin.autodiscover()
-        except:
-            pass
+        admin.autodiscover()
 
     def get_request(self, params=None):
-        request = self.factory.get('/', params)
+        request = self.factory.get("/", params)
 
         request.user = self.superuser
         return request
 
     def post_request(self, post_data={}, params=None):
-        request = self.factory.post('/', params, post_data=post_data)
+        request = self.factory.post("/", params, post_data=post_data)
 
         request.user = self.superuser
         request._dont_enforce_csrf_checks = True
         return request
 
     def strip_minus(self, attr, val):
-        if attr in self.strip_minus_attrs and val[0] == '-':
+        if attr in self.strip_minus_attrs and val[0] == "-":
             val = val[1:]
         return val
 
@@ -120,10 +127,7 @@ class AdminSiteSmokeTestMixin(object):
         attr_set = []
 
         for attr in self.iter_attributes:
-            attr_set += [
-                self.strip_minus(attr, a)
-                for a in getattr(model_admin, attr)
-            ]
+            attr_set += [self.strip_minus(attr, a) for a in getattr(model_admin, attr)]
 
         for attr in self.iter_or_falsy_attributes:
             attrs = getattr(model_admin, attr, None)
@@ -132,10 +136,9 @@ class AdminSiteSmokeTestMixin(object):
                 attr_set += [self.strip_minus(attr, a) for a in attrs]
 
         for fieldset in self.get_fieldsets(model, model_admin):
-            for attr in fieldset[1]['fields']:
+            for attr in fieldset[1]["fields"]:
                 if isinstance(attr, list) or isinstance(attr, tuple):
-                    attr_set += [self.strip_minus(fieldset, a)
-                        for a in attr]
+                    attr_set += [self.strip_minus(fieldset, a) for a in attr]
                 else:
                     attr_set.append(attr)
 
@@ -159,11 +162,8 @@ class AdminSiteSmokeTestMixin(object):
         try:
             model_field_names = frozenset(model._meta.get_fields())
         except AttributeError:  # Django<1.10
-            model_field_names = frozenset(
-                model._meta.get_all_field_names()
-            )
-        form_field_names = frozenset(getattr(model_admin.form,
-            'base_fields', []))
+            model_field_names = frozenset(model._meta.get_all_field_names())
+        form_field_names = frozenset(getattr(model_admin.form, "base_fields", []))
 
         model_instance = model()
 
@@ -174,8 +174,8 @@ class AdminSiteSmokeTestMixin(object):
 
             # don't split attributes that start with underscores (such as
             # __str__)
-            if attr[0] != '_':
-                attr = attr.split('__')[0]
+            if attr[0] != "_":
+                attr = attr.split("__")[0]
 
             has_model_field = attr in model_field_names
             has_form_field = attr in form_field_names
@@ -187,11 +187,17 @@ class AdminSiteSmokeTestMixin(object):
             except (ValueError, ObjectDoesNotExist):
                 has_model_attr = attr in model_instance.__dict__
 
-            has_field_or_attr = has_model_field or has_form_field or\
-                has_model_attr or has_admin_attr or has_model_class_attr
+            has_field_or_attr = (
+                has_model_field
+                or has_form_field
+                or has_model_attr
+                or has_admin_attr
+                or has_model_class_attr
+            )
 
-            self.assertTrue(has_field_or_attr, '%s not found on %s (%s)' %
-                (attr, model, model_admin,))
+            self.assertTrue(
+                has_field_or_attr, f"{attr} not found on {model} ({model_admin})"
+            )
 
     @for_all_model_admins
     def test_queryset(self, model, model_admin):
@@ -199,12 +205,12 @@ class AdminSiteSmokeTestMixin(object):
 
         # TODO: use model_mommy to generate a few instances to query against
         # make sure no errors happen here
-        if hasattr(model_admin, 'get_queryset'):
+        if hasattr(model_admin, "get_queryset"):
             list(model_admin.get_queryset(request))
 
     @for_all_model_admins
     def test_get_absolute_url(self, model, model_admin):
-        if hasattr(model, 'get_absolute_url'):
+        if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
             instance = model.objects.first()
             # Otherwise create a minimal instance
@@ -229,7 +235,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
-        request = self.get_request(params=QueryDict('q=test'))
+        request = self.get_request(params=QueryDict("q=test"))
 
         # make sure no errors happen here
         try:
