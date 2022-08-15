@@ -54,7 +54,6 @@ class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps: List[str] = []
     exclude_modeladmins: List[str] = []
-    fixtures = ["django_admin_smoke_tests"]
 
     single_attributes = ["date_hierarchy"]
     iter_attributes = [
@@ -130,7 +129,9 @@ class AdminSiteSmokeTestMixin(object):
             print("\t%s" % str(e).replace("\n", "\n\t"))
 
     def post_request(self, model, model_admin, post_data={}, **params):
-        request = self.factory.post(self.get_url(model, model_admin), post_data, **params)
+        request = self.factory.post(
+            self.get_url(model, model_admin), post_data, **params
+        )
         middleware = SessionMiddleware(request)
         middleware.process_request(request)
         setattr(request, "_messages", FallbackStorage(request))

@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.core.exceptions import FieldError
 from django.test import TestCase
 
-from django_admin_smoke_tests.tests import AdminSiteSmokeTest as OrigAdminSiteSmokeTest
 from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
 
 from .admin import (
@@ -80,6 +79,10 @@ class UnitTest(TestCase):
         self.assertEqual(mixin.strip("foo", "-scene"), "-scene")
 
     def test_get_attr_set(self):
+        from django_admin_smoke_tests.tests import (
+            AdminSiteSmokeTest as OrigAdminSiteSmokeTest,
+        )
+
         test_class = OrigAdminSiteSmokeTest()
         test_class.setUp()
         sites = admin.site._registry.items()
