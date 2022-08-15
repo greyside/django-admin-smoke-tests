@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import List
 
 import django
@@ -15,26 +16,40 @@ class ModelAdminCheckException(Exception):
         super(ModelAdminCheckException, self).__init__(message)
 
 
-def for_all_model_admins(fn):
-    def test_deco(self):
-        for model, model_admin in self.modeladmins:
-            if model_admin.__class__ in self.exclude_modeladmins:
-                continue
-            if model._meta.app_label in self.exclude_apps:
-                continue
-            try:
-                fn(self, model, model_admin)
-            except Exception as e:
-                six.raise_from(
-                    ModelAdminCheckException(
-                        f"Above exception occured while running test '{fn.__name__}' "
-                        "on modeladmin {model_admin} ({model.__name__})",
-                        e,
-                    ),
-                    e,
-                )
+def param_as_standalone_func(p, func, name):
+    @wraps(func)
+    def standalone_func(*a):
+        return func(*a, *p)
 
-    return test_deco
+    standalone_func.__name__ = name
+    return standalone_func
+
+
+class for_all_model_admins:
+    def __init__(self, fn):
+        self.fn = fn
+        self.doc = fn.__doc__
+
+    def __set_name__(self, owner, name):
+        self.fn.class_name = owner.__name__
+
+        print(owner, owner.get_exclude_modeladmins(), owner.get_exclude_apps())
+        for model, model_admin in owner.get_modeladmins():
+            print(model_admin.__class__)
+            if model_admin.__class__ in owner.get_exclude_modeladmins():
+                continue
+            if model._meta.app_label in owner.get_exclude_apps():
+                continue
+            new_name = f"{name}_{model._meta.app_label}_{model._meta.model_name}"
+            setattr(
+                owner,
+                new_name,
+                param_as_standalone_func((model, model_admin), self.fn, new_name),
+            )
+            docs_prefix = self.doc or "Test for "
+            getattr(owner, new_name).__doc__ = (
+                docs_prefix + f" {model_admin} model admin for {model} model."
+            )
 
 
 class AdminSiteSmokeTestMixin(object):
@@ -61,6 +76,20 @@ class AdminSiteSmokeTestMixin(object):
     ]
 
     strip_minus_attrs = ("ordering",)
+
+    @classmethod
+    def get_exclude_modeladmins(cls):
+        return cls.exclude_modeladmins
+
+    @classmethod
+    def get_exclude_apps(cls):
+        return cls.exclude_apps
+
+    @classmethod
+    def get_modeladmins(cls):
+        if not cls.modeladmins:
+            cls.modeladmins = admin.site._registry.items()
+        return cls.modeladmins
 
     def setUp(self):
         super(AdminSiteSmokeTestMixin, self).setUp()
@@ -129,6 +158,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_specified_fields(self, model, model_admin):
+        """Test specified fields for"""
         attr_set = self.get_attr_set(model, model_admin)
 
         # FIXME: not all attributes can be used everywhere (e.g. you can't
@@ -176,6 +206,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_queryset(self, model, model_admin):
+        """Test get_queryset() method on"""
         request = self.get_request()
 
         # TODO: use model_mommy to generate a few instances to query against
@@ -185,6 +216,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_get_absolute_url(self, model, model_admin):
+        """Test get_absolute_url() method on"""
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
             instance = model.objects.first()
@@ -196,6 +228,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_changelist_view(self, model, model_admin):
+        """Test GET on changelist view of"""
         request = self.get_request()
 
         # make sure no errors happen here
@@ -210,6 +243,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
+        """Test search GET on changelist view of"""
         request = self.get_request(params=QueryDict("q=test"))
 
         # make sure no errors happen here
@@ -224,6 +258,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
+        """Test POST on add view of"""
         request = self.get_request()
 
         # make sure no errors happen here
@@ -239,6 +274,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_change_view(self, model, model_admin):
+        """Test GET on change view of"""
         item = model.objects.last()
         if not item or model._meta.proxy:
             return
@@ -253,6 +289,7 @@ class AdminSiteSmokeTestMixin(object):
 
     @for_all_model_admins
     def test_change_post(self, model, model_admin):
+        """Test POST on change view of"""
         item = model.objects.last()
         if not item or model._meta.proxy:
             return
