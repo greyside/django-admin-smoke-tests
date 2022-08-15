@@ -3,8 +3,14 @@ from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 
 # App imports
-from .models import Channel, FailPost, ForbiddenPost,\
-    HasPrimarySlug, HasPrimaryUUID, Post
+from .models import (
+    Channel,
+    FailPost,
+    ForbiddenPost,
+    HasPrimarySlug,
+    HasPrimaryUUID,
+    Post,
+)
 
 
 class ChannelAdmin(admin.ModelAdmin):
@@ -20,7 +26,7 @@ class ListFilter(SimpleListFilter):
 
     def __init__(self, request, params, model, model_admin):
         super(ListFilter, self).__init__(request, params, model, model_admin)
-        self.lookup_val = request.GET.getlist('a')
+        self.lookup_val = request.GET.getlist("a")
 
     def lookups(self, request, model_admin):
         return ()
@@ -31,23 +37,37 @@ class ListFilter(SimpleListFilter):
 
 class PostAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
-    list_editable = ['status']
-    list_display = ('title', 'author', 'status', 'modified', 'published',)
-    list_filter = (
-        'author', 'status', 'channel', 'created', 'modified',
-        'published', ListFilter,
+    list_editable = ["status"]
+    list_display = (
+        "title",
+        "author",
+        "status",
+        "modified",
+        "published",
     )
-    readonly_fields = ['created', 'modified', 'time_diff']
-    ordering = ('title', '-id',)
-    fieldsets = [('Fielset', {
-        'fields': ['created', ('slug', 'title', 'author', 'status')]}),
+    list_filter = (
+        "author",
+        "status",
+        "channel",
+        "created",
+        "modified",
+        "published",
+        ListFilter,
+    )
+    readonly_fields = ["created", "modified", "time_diff"]
+    ordering = (
+        "title",
+        "-id",
+    )
+    fieldsets = [
+        ("Fielset", {"fields": ["created", ("slug", "title", "author", "status")]}),
     ]
-    date_hierarchy = 'created'
+    date_hierarchy = "created"
 
-    search_fields = ['title', 'text']
+    search_fields = ["title", "text"]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'author':
+        if db_field.name == "author":
             db_field.default = request.user
         return super(PostAdmin, self).formfield_for_foreignkey(
             db_field, request, **kwargs
@@ -55,9 +75,10 @@ class PostAdmin(admin.ModelAdmin):
 
 
 class FailPostAdmin(admin.ModelAdmin):
-    """ Admin, that should fail if it is not excluded from the smoke tests """
-    search_fields = ['nonexistent_field']
-    list_display = ['fail_field']
+    """Admin, that should fail if it is not excluded from the smoke tests"""
+
+    search_fields = ["nonexistent_field"]
+    list_display = ["fail_field"]
 
     def fail_field(self, obj):
         raise Exception

@@ -1,7 +1,10 @@
 from django.test import TestCase
 
-from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin,\
-    ModelAdminCheckException, for_all_model_admins
+from django_admin_smoke_tests.tests import (
+    AdminSiteSmokeTestMixin,
+    ModelAdminCheckException,
+    for_all_model_admins,
+)
 
 from .admin import ChannelAdmin, FailPostAdmin, ForbiddenPostAdmin, PostAdmin
 from .models import Channel, FailPost
@@ -9,7 +12,7 @@ from .models import Channel, FailPost
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
-    exclude_apps = ['auth']
+    exclude_apps = ["auth"]
     exclude_modeladmins = [FailPostAdmin, ForbiddenPostAdmin]
 
 
