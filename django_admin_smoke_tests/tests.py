@@ -149,7 +149,7 @@ class AdminSiteSmokeTestMixin(object):
         model_field_names = frozenset(model._meta.get_fields())
         form_field_names = frozenset(getattr(model_admin.form, "base_fields", []))
 
-        model_instance = model()
+        model_instance = baker.make(model)
 
         for attr in attr_set:
             # for now we'll just check attributes, not strings
