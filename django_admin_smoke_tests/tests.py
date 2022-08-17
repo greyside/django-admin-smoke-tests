@@ -2,7 +2,6 @@ import logging
 from typing import List
 
 import django
-import six
 from django.contrib import admin, auth
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
@@ -165,7 +164,7 @@ class AdminSiteSmokeTestMixin(object):
 
         for attr in attr_set:
             # for now we'll just check attributes, not strings
-            if not isinstance(attr, six.string_types):
+            if not isinstance(attr, str):
                 continue
 
             # don't split attributes that start with underscores (such as
