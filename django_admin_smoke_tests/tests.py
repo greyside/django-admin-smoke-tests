@@ -9,12 +9,6 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 
 
-class ModelAdminCheckException(Exception):
-    def __init__(self, message, original_exception):
-        self.original_exception = original_exception
-        super(ModelAdminCheckException, self).__init__(message)
-
-
 def for_all_model_admins(fn):
     def test_deco(self):
         modeladmins = self.get_modeladmins()
