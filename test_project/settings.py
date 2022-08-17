@@ -68,6 +68,7 @@ MIDDLEWARE = (
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 )
+MIDDLEWARE_CLASSES = MIDDLEWARE
 
 ROOT_URLCONF = "test_project.urls"
 
