@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import django
@@ -11,14 +12,25 @@ from django.test.client import RequestFactory
 from model_bakery import baker
 
 
+logger = logging.getLogger(__name__)
+
+
+def model_path(model):
+    return f"{model.__module__}.{model.__name__}"
+
+
 def for_all_model_admins(fn):
     def test_deco(self):
         modeladmins = self.get_modeladmins()
         for model, model_admin in modeladmins:
-            with self.subTest(f"{model.__module__}.{model.__name__} {model_admin}"):
+            with self.subTest(f"{model_path(model)} {model_admin}"):
                 fn(self, model, model_admin)
 
     return test_deco
+
+
+def format_exception(e):
+    return str(e).replace("\\n", "\\n\\t")
 
 
 class AdminSiteSmokeTestMixin(object):
@@ -226,10 +238,13 @@ class AdminSiteSmokeTestMixin(object):
             response = model_admin.changelist_view(request)
             response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied:
+        except PermissionDenied as e:
             # this error is commonly raised by ModelAdmins that don't allow
             # changelist view
-            pass
+            logging.exception(
+                e,
+                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
+            )
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
@@ -243,10 +258,13 @@ class AdminSiteSmokeTestMixin(object):
             response = model_admin.changelist_view(request)
             response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied:
+        except PermissionDenied as e:
             # this error is commonly raised by ModelAdmins that don't allow
             # changelist view.
-            pass
+            logging.exception(
+                e,
+                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
+            )
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
@@ -261,10 +279,13 @@ class AdminSiteSmokeTestMixin(object):
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied:
+        except PermissionDenied as e:
             # this error is commonly raised by ModelAdmins that don't allow
             # adding.
-            pass
+            logging.exception(
+                e,
+                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
+            )
 
     @for_all_model_admins
     def test_change_view(self, model, model_admin):
@@ -306,10 +327,17 @@ class AdminSiteSmokeTestMixin(object):
 
         except ValidationError as e:
             # This the form was sent, but did not pass it's validation
-            print(
-                f"Validation error in model {model}, skipping smoke test: change view with data:"
+            logging.exception(
+                e,
+                f"Validation error for {model_admin} on  {model_path(model)}, skipping smoke test",
             )
-            print("\t" + str(e).replace("\n", "\n\t"))
+        except PermissionDenied as e:
+            # This error is commonly raised by ModelAdmin if the user doesn't have
+            # permission to change the object
+            logging.exception(
+                e,
+                f"PermissionDenied was encountered for {model_admin} on {model_path(model)}.",
+            )
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
