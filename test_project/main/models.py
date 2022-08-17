@@ -2,14 +2,8 @@ import uuid
 
 # Django imports
 from django.conf import settings
-
-
-try:
-    from django.urls import reverse
-except ImportError:
-    from django.core.urlresolvers import reverse
-
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 
 
@@ -118,13 +112,9 @@ class HasPrimarySlug(models.Model):
         return reverse("hasprimaryslug-detail", kwargs={"pk": self.pk})
 
 
-HasPrimaryUUID = None
+class HasPrimaryUUID(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=140, unique=True)
 
-if hasattr(models, "UUIDField"):
-
-    class HasPrimaryUUID(models.Model):
-        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-        title = models.CharField(max_length=140, unique=True)
-
-        def get_absolute_url(self):
-            return reverse("hasprimaryuuid-detail", kwargs={"pk": self.pk})
+    def get_absolute_url(self):
+        return reverse("hasprimaryuuid-detail", kwargs={"pk": self.pk})

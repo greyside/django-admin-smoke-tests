@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from typing import List
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -43,7 +44,7 @@ TEMPLATES = [
     },
 ]
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS: List[str] = []
 
 
 # Application definition
