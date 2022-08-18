@@ -4,6 +4,7 @@ from typing import List
 
 import django
 from django.contrib import admin, auth
+from django.contrib.admin import SimpleListFilter
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ObjectDoesNotExist
@@ -305,6 +306,7 @@ class AdminSiteSmokeTestMixin(object):
         self.changelist_view_func(model, model_admin)
 
     def changelist_view_func(self, model, model_admin):
+        """Run the changelist_view method on the model admin."""
         request = self.get_request(model, model_admin)
 
         with transaction.atomic():
@@ -319,6 +321,43 @@ class AdminSiteSmokeTestMixin(object):
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
+
+    @for_all_model_admins
+    def test_changelist_filters_view(self, model, model_admin):
+        """Try to get various values for list_filter and call the view with them"""
+        self.changelist_filters_view_func(model, model_admin)
+
+    def changelist_filters_view_func(self, model, model_admin):
+
+        with transaction.atomic():
+            self.prepare_models(model, model_admin, "changelist view", quantity=5)
+
+        request = self.get_request(model, model_admin)
+
+        if hasattr(
+            model_admin, "has_view_permission"
+        ) and model_admin.has_view_permission(request):
+            for filter in model_admin.list_filter:
+                if isinstance(filter, tuple):
+                    filter = filter[0]
+                if isinstance(filter, str):
+                    key = filter
+                    value = model.objects.values(filter).first()[filter]
+                    filters = [(key, value)]
+                elif issubclass(filter, SimpleListFilter):
+                    filter_instance = filter(request, [], model, model_admin)
+                    key = filter_instance.parameter_name
+                    filters = [
+                        (key, lookup[0]) for lookup in filter_instance.lookup_choices
+                    ]
+                for key, value in filters:
+                    request = self.get_request(
+                        model, model_admin, params=QueryDict(f"{key}={value}")
+                    )
+                    response = model_admin.changelist_view(request)
+                    if isinstance(response, django.template.response.TemplateResponse):
+                        response.render()
+                    self.assertIn(response.status_code, [200, 302])
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
