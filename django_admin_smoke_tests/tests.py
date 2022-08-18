@@ -112,6 +112,8 @@ class AdminSiteSmokeTestMixin(object):
 
         admin.autodiscover()
 
+        self.prepare_all_models()
+
     def get_url(self, model, model_admin):
         return "/"
 
@@ -124,8 +126,8 @@ class AdminSiteSmokeTestMixin(object):
         request.user = self.superuser
         return request
 
-    def create_model_items(self, model, model_admin, quantity=1):
-        """Create models with model_bakery use dafault_field_values"""
+    def create_models(self, model, quantity=1):
+        """Create models with model_bakery"""
         try:
             return baker.make_recipe(
                 f"{self.recipes_prefix}.{model.__name__}",
@@ -135,28 +137,21 @@ class AdminSiteSmokeTestMixin(object):
         except (AttributeError, TypeError):
             return baker.make(model, _quantity=quantity, _create_files=True)
 
-    def create_models(self, model, model_admin, quantity=1):
-        """
-        Create models
-        returns:
-            models: list of models or single model if quantity == 1
-        """
-        # To allow model_bakery to create models with mptt
-        with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
-            items = self.create_model_items(model, model_admin, quantity)
-
-        if quantity == 1:
-            return items[0]
-        return items
-
-    def prepare_models(self, model, model_admin, view_string, quantity=1):
+    def prepare_models(self, model, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
         try:
-            return self.create_models(model, model_admin, quantity)
+            with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
+                return self.create_models(model, quantity)
         except Exception as e:
-            warning_string = f"Not able to create {model} data for {view_string}."
+            warning_string = f"Not able to create {model} data."
             logging.exception(e, warning_string)
             warnings.warn(warning_string)
+
+    def prepare_all_models(self):
+        """Prepare all models for all modeladmins"""
+        for model, model_admin in self.get_modeladmins():
+            with transaction.atomic():
+                self.prepare_models(model, quantity=5)
 
     def post_request(self, model, model_admin, post_data={}, **params):
         request = self.factory.post(
@@ -244,8 +239,7 @@ class AdminSiteSmokeTestMixin(object):
     def specified_fields_func(self, model, model_admin):
         attr_set = self.get_attr_set(model, model_admin)
 
-        with transaction.atomic():
-            instance = self.prepare_models(model, model_admin, "specified fields")
+        instance = model.objects.last()
 
         if not instance:
             warnings.warn(
@@ -279,9 +273,6 @@ class AdminSiteSmokeTestMixin(object):
     def queryset_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
-        with transaction.atomic():
-            self.prepare_models(model, model_admin, "queryset tests", quantity=5)
-
         # make sure no errors happen here
         if hasattr(model_admin, "get_queryset"):
             list(model_admin.get_queryset(request))
@@ -293,8 +284,7 @@ class AdminSiteSmokeTestMixin(object):
     def get_absolute_url_func(self, model, model_admin):
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
-            with transaction.atomic():
-                instance = self.prepare_models(model, model_admin, "get absolute url")
+            instance = model.objects.last()
             # Otherwise create a minimal instance
             if not instance:
                 instance = model(pk=1)
@@ -308,9 +298,6 @@ class AdminSiteSmokeTestMixin(object):
     def changelist_view_func(self, model, model_admin):
         """Run the changelist_view method on the model admin."""
         request = self.get_request(model, model_admin)
-
-        with transaction.atomic():
-            self.prepare_models(model, model_admin, "changelist view", quantity=5)
 
         # make sure no errors happen here
         response = model_admin.changelist_view(request)
@@ -328,10 +315,6 @@ class AdminSiteSmokeTestMixin(object):
         self.changelist_filters_view_func(model, model_admin)
 
     def changelist_filters_view_func(self, model, model_admin):
-
-        with transaction.atomic():
-            self.prepare_models(model, model_admin, "changelist view", quantity=5)
-
         request = self.get_request(model, model_admin)
 
         if hasattr(
@@ -394,10 +377,7 @@ class AdminSiteSmokeTestMixin(object):
     def change_view_func(self, model, model_admin):
         item = model.objects.last()
         if not item or model._meta.proxy:
-            with transaction.atomic():
-                item = self.prepare_models(model, model_admin, "change post view")
-                if item is None:
-                    return
+            return
         pk = item.pk
         request = self.get_request(model, model_admin)
 
@@ -414,10 +394,7 @@ class AdminSiteSmokeTestMixin(object):
     def change_post_func(self, model, model_admin):
         item = model.objects.last()
         if not item:
-            with transaction.atomic():
-                item = self.prepare_models(model, model_admin, "change post view")
-                if item is None:
-                    return
+            return
         if model._meta.proxy:
             return
         pk = item.pk
