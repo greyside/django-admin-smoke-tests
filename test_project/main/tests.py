@@ -146,7 +146,7 @@ class UnitTestMixin(TestCase):
         test_class.setUp()
         with self.assertWarnsRegex(
             Warning,
-            "Not able to create <class 'test_project.main.models.Channel'> data.",
+            "Not able to create test_project.main.models.Channel data.",
         ):
             test_class.prepare_models(Channel, ChannelAdmin)
 

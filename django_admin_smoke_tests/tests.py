@@ -148,9 +148,7 @@ class AdminSiteSmokeTestMixin(object):
             with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
                 return self.create_models(model, model_admin, quantity)
         except Exception as e:
-            warning_string = (
-                f"Not able to create {model} data for {model_admin} creation."
-            )
+            warning_string = f"Not able to create {model_path(model)} data for {model_admin} creation."
             logging.exception(e, warning_string)
             warnings.warn(warning_string)
 
