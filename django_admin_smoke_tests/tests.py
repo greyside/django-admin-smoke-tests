@@ -131,7 +131,7 @@ class AdminSiteSmokeTestMixin(object):
         request.user = self.superuser
         return request
 
-    def create_models(self, model, quantity=1):
+    def create_models(self, model, model_admin, quantity=1):
         """Create models with model_bakery"""
         try:
             return baker.make_recipe(
@@ -142,13 +142,15 @@ class AdminSiteSmokeTestMixin(object):
         except (AttributeError, TypeError):
             return baker.make(model, _quantity=quantity, _create_files=True)
 
-    def prepare_models(self, model, quantity=1):
+    def prepare_models(self, model, model_admin, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
         try:
             with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
-                return self.create_models(model, quantity)
+                return self.create_models(model, model_admin, quantity)
         except Exception as e:
-            warning_string = f"Not able to create {model} data."
+            warning_string = (
+                f"Not able to create {model} data for {model_admin} creation."
+            )
             logging.exception(e, warning_string)
             warnings.warn(warning_string)
 
@@ -156,7 +158,7 @@ class AdminSiteSmokeTestMixin(object):
         """Prepare all models for all modeladmins"""
         for model, model_admin in self.get_modeladmins():
             with transaction.atomic():
-                self.prepare_models(model, quantity=5)
+                self.prepare_models(model, model_admin, quantity=5)
 
     def post_request(self, model, model_admin, post_data={}, **params):
         request = self.factory.post(

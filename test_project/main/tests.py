@@ -137,7 +137,7 @@ class UnitTestMixin(TestCase):
         self.test_class.specified_fields_func(Post, dict(self.sites)[Post])
 
     def test_prepare_models(self):
-        channels = self.test_class.prepare_models(Channel)
+        channels = self.test_class.prepare_models(Channel, ChannelAdmin)
         self.assertTrue(isinstance(channels[0], Channel))
 
     def test_prepare_models_failure(self):
@@ -148,13 +148,13 @@ class UnitTestMixin(TestCase):
             Warning,
             "Not able to create <class 'test_project.main.models.Channel'> data.",
         ):
-            test_class.prepare_models(Channel)
+            test_class.prepare_models(Channel, ChannelAdmin)
 
     def test_prepare_models_recipe(self):
         test_class = AdminSiteSmokeTest()
         test_class.recipes_prefix = "test_project.main"
         test_class.setUp()
-        channels = test_class.prepare_models(Channel)
+        channels = test_class.prepare_models(Channel, ChannelAdmin)
         self.assertTrue(isinstance(channels[0], Channel))
         self.assertEquals(channels[0].text, "Created by recipe")
 
@@ -180,7 +180,7 @@ class UnitTestMixinNoInstances(TestCase):
             superuser_username = "superuser1"
             only_modeladmins = [ChannelAdmin, "PostAdmin"]
 
-            def prepare_models(self, model, quantity=1):
+            def prepare_models(self, model, model_admin, quantity=1):
                 return
 
         self.test_class = MyAdminSiteSmokeTest()
