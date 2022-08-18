@@ -38,6 +38,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
+                "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
             ],
         },
@@ -72,6 +73,8 @@ MIDDLEWARE_CLASSES = MIDDLEWARE
 ROOT_URLCONF = "test_project.urls"
 
 WSGI_APPLICATION = "test_project.wsgi.application"
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Database
