@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Model
 from django.db.models.fields.files import FieldFile
 from django.http.request import QueryDict
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
 from model_bakery import baker
 
@@ -54,6 +54,7 @@ class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps: List[str] = []
     exclude_modeladmins: List[str] = []
+    recipes_prefix = ""
 
     single_attributes = ["date_hierarchy"]
     iter_attributes = [
@@ -116,20 +117,39 @@ class AdminSiteSmokeTestMixin(object):
         request.user = self.superuser
         return request
 
-    def create_models(self, model, model_admin, view_string, quantity=1):
+    def create_model_items(self, model, model_admin, quantity=1):
+        """Create models with model_bakery use dafault_field_values"""
+        try:
+            return baker.make_recipe(
+                f"{self.recipes_prefix}.{model.__name__}",
+                _quantity=quantity,
+                _create_files=True,
+            )
+        except (AttributeError, TypeError):
+            return baker.make(model, _quantity=quantity, _create_files=True)
+
+    def create_models(self, model, model_admin, quantity=1):
+        """
+        Create models
+        returns:
+            models: list of models or single model if quantity == 1
+        """
+        # To allow model_bakery to create models with mptt
+        with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
+            items = self.create_model_items(model, model_admin, quantity)
+
         if quantity == 1:
-            return baker.make(model)
-        return baker.make(model, _quantity=quantity)
+            return items[0]
+        return items
 
     def prepare_models(self, model, model_admin, view_string, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
         try:
-            return self.create_models(model, model_admin, view_string, quantity)
+            return self.create_models(model, model_admin, quantity)
         except Exception as e:
-            logging.exception(
-                e,
-                f"Not able to create {model} data for {view_string}.",
-            )
+            warning_string = f"Not able to create {model} data for {view_string}."
+            logging.exception(e, warning_string)
+            warnings.warn(warning_string)
 
     def post_request(self, model, model_admin, post_data={}, **params):
         request = self.factory.post(
