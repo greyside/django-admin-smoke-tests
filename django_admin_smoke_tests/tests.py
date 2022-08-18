@@ -7,6 +7,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Model
+from django.db.models.fields.files import FieldFile
 from django.http.request import QueryDict
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -32,6 +34,19 @@ def for_all_model_admins(fn):
 
 def format_exception(e):
     return str(e).replace("\\n", "\\n\\t")
+
+
+def form_data(form, item):
+    data = {}
+    for field in form.base_fields:
+        value = getattr(item, field, None)
+        if isinstance(value, FieldFile):
+            pass
+        elif isinstance(value, Model):
+            data[field] = value.pk
+        elif value is not None:
+            data[field] = value
+    return data
 
 
 class AdminSiteSmokeTestMixin(object):
@@ -331,7 +346,11 @@ class AdminSiteSmokeTestMixin(object):
         if model._meta.proxy:
             return
         pk = item.pk
+
+        # Get form and use it to create POST data
         request = self.post_request(model, model_admin)
+        form = model_admin.get_form(request)
+        request = self.post_request(model, model_admin, post_data=form_data(form, item))
         try:
             response = model_admin.change_view(request, object_id=str(pk))
             if isinstance(response, django.template.response.TemplateResponse):
