@@ -19,12 +19,12 @@ from .models import Channel, FailPost, Post, ProxyChannel
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
     exclude_apps = ["auth"]
-    exclude_modeladmins = [FailPostAdmin, ForbiddenPostAdmin]
+    exclude_modeladmins = [FailPostAdmin, "ForbiddenPostAdmin"]
 
 
 class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
-    exclude_modeladmins = [ForbiddenPostAdmin, PostAdmin, ChannelAdmin]
+    exclude_modeladmins = [ForbiddenPostAdmin, PostAdmin, "test_project.ChannelAdmin"]
 
     def setUp(self):
         FailPost.objects.create(
@@ -176,7 +176,9 @@ class UnitTestMixinNoInstances(TestCase):
         self.sites = admin.site._registry.items()
 
         class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
+            modeladmins = []
             superuser_username = "superuser1"
+            only_modeladmins = [ChannelAdmin, "PostAdmin"]
 
             def prepare_models(self, model, quantity=1):
                 return

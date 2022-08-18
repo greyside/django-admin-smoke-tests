@@ -24,6 +24,15 @@ def model_path(model):
     return f"{model.__module__}.{model.__name__}"
 
 
+def match_class(cls, data):
+    return (
+        cls.__name__ in data
+        or model_path(cls) in data
+        or cls in data
+        or cls.__class__ in data
+    )
+
+
 def for_all_model_admins(fn):
     def test_deco(self):
         modeladmins = self.get_modeladmins()
@@ -73,24 +82,21 @@ class AdminSiteSmokeTestMixin(object):
     strip_minus_attrs = ("ordering",)
 
     def get_modeladmins(self):
-        if not self.modeladmins:
-            modeladmins = admin.site._registry.items()
-        else:
-            modeladmins = self.modeladmins
+        modeladmins = self.modeladmins or admin.site._registry.items()
 
         modeladmins = [
             (model, model_admin)
             for (model, model_admin) in modeladmins
             if (
-                model_admin.__class__ not in self.exclude_modeladmins
+                not match_class(model_admin.__class__, self.exclude_modeladmins)
                 and model._meta.app_label not in self.exclude_apps
             )
         ]
-        if getattr(self, "only_models", None):
+        if getattr(self, "only_modeladmins", None):
             modeladmins = [
                 (model, model_admin)
                 for (model, model_admin) in modeladmins
-                if model.__name__ in self.only_models
+                if match_class(model_admin.__class__, self.only_modeladmins)
             ]
         return modeladmins
 
