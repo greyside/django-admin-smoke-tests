@@ -132,6 +132,31 @@ class UnitTestMixin(TestCase):
         self.test_class.setUp()
         self.sites = admin.site._registry.items()
 
+    def test_has_attr(self):
+        self.assertTrue(
+            self.test_class.has_attr(
+                Channel(), Channel, dict(self.sites)[Channel], "slug"
+            )
+        )
+        self.assertTrue(
+            self.test_class.has_attr(Post(), Post, dict(self.sites)[Post], "title")
+        )
+        self.assertFalse(
+            self.test_class.has_attr(
+                Post(), Post, dict(self.sites)[Post], "nonexistent_field"
+            )
+        )
+        self.assertFalse(
+            self.test_class.has_attr(
+                Post, Post, dict(self.sites)[Post], "nonexistent_field"
+            )
+        )
+        self.assertFalse(
+            self.test_class.has_attr(
+                None, Post, dict(self.sites)[Post], "nonexistent_field"
+            )
+        )
+
     def test_specified_fields_func(self):
         self.test_class.specified_fields_func(Channel, dict(self.sites)[Channel])
         self.test_class.specified_fields_func(Post, dict(self.sites)[Post])
