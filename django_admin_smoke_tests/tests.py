@@ -355,7 +355,10 @@ class AdminSiteSmokeTestMixin(object):
     def change_view_func(self, model, model_admin):
         item = model.objects.last()
         if not item or model._meta.proxy:
-            return
+            with transaction.atomic():
+                item = self.prepare_models(model, model_admin, "change post view")
+                if item is None:
+                    return
         pk = item.pk
         request = self.get_request(model, model_admin)
 

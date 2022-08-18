@@ -98,7 +98,7 @@ class ForbiddenPostAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         False
 
-    def has_delete_permission(self, request):
+    def has_delete_permission(self, request, obj=None):
         False
 
 
