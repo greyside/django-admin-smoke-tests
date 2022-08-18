@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import List
 
 import django
@@ -180,6 +181,31 @@ class AdminSiteSmokeTestMixin(object):
 
         return attr_set
 
+    def has_attr(self, model_instance, model, model_admin, attr):
+        # FIXME: not all attributes can be used everywhere (e.g. you can't
+        # use list_filter with a form field). This will have to be fixed
+        # later.
+        model_field_names = frozenset(model._meta.get_fields())
+        form_field_names = frozenset(getattr(model_admin.form, "base_fields", []))
+
+        has_model_field = attr in model_field_names
+        has_form_field = attr in form_field_names
+        has_model_class_attr = hasattr(model_instance.__class__, attr)
+        has_admin_attr = hasattr(model_admin, attr)
+
+        try:
+            has_model_attr = hasattr(model_instance, attr)
+        except (ValueError, ObjectDoesNotExist):
+            has_model_attr = attr in model_instance.__dict__
+
+        return (
+            has_model_field
+            or has_form_field
+            or has_model_attr
+            or has_admin_attr
+            or has_model_class_attr
+        )
+
     @for_all_model_admins
     def test_specified_fields(self, model, model_admin):
         self.specified_fields_func(model, model_admin)
@@ -187,13 +213,14 @@ class AdminSiteSmokeTestMixin(object):
     def specified_fields_func(self, model, model_admin):
         attr_set = self.get_attr_set(model, model_admin)
 
-        # FIXME: not all attributes can be used everywhere (e.g. you can't
-        # use list_filter with a form field). This will have to be fixed
-        # later.
-        model_field_names = frozenset(model._meta.get_fields())
-        form_field_names = frozenset(getattr(model_admin.form, "base_fields", []))
+        with transaction.atomic():
+            instance = self.prepare_models(model, model_admin, "specified fields")
 
-        model_instance = baker.make(model)
+        if not instance:
+            warnings.warn(
+                f"No {model_path(model)} data created to test fields on {model_admin}."
+            )
+            return
 
         for attr in attr_set:
             # for now we'll just check attributes, not strings
@@ -205,26 +232,13 @@ class AdminSiteSmokeTestMixin(object):
             if attr[0] != "_":
                 attr = attr.split("__")[0]
 
-            has_model_field = attr in model_field_names
-            has_form_field = attr in form_field_names
-            has_model_class_attr = hasattr(model_instance.__class__, attr)
-            has_admin_attr = hasattr(model_admin, attr)
-
-            try:
-                has_model_attr = hasattr(model_instance, attr)
-            except (ValueError, ObjectDoesNotExist):
-                has_model_attr = attr in model_instance.__dict__
-
-            has_field_or_attr = (
-                has_model_field
-                or has_form_field
-                or has_model_attr
-                or has_admin_attr
-                or has_model_class_attr
-            )
-
+            attr_variants = [attr, f"{attr}_set"]
             self.assertTrue(
-                has_field_or_attr, f"{attr} not found on {model} ({model_admin})"
+                any(
+                    self.has_attr(instance, model, model_admin, att)
+                    for att in attr_variants
+                ),
+                f"Field '{attr}' not found on {model_path(model)} ({model_admin})",
             )
 
     @for_all_model_admins

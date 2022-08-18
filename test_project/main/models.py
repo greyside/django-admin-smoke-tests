@@ -42,7 +42,7 @@ class Channel(_Abstract):
         ordering = ["title"]
 
 
-class Post(_Abstract):
+class AbstractPost(_Abstract):
     SUMMARY_LENGTH = 50
 
     STATUSES = [
@@ -91,16 +91,23 @@ class Post(_Abstract):
 
     class Meta:
         ordering = ["published"]
+        abstract = True
 
     def get_absolute_url(self):
         return reverse("post-detail", kwargs={"pk": self.pk})
 
 
-class ForbiddenPost(Post):
+class Post(AbstractPost):
     pass
 
 
-class FailPost(Post):
+class ForbiddenPost(AbstractPost):
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name="forbidden_posts"
+    )
+
+
+class FailPost(AbstractPost):
     pass
 
 

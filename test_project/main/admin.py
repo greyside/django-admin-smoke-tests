@@ -16,6 +16,8 @@ from .models import (
 class ChannelAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
 
+    search_fields = ["title", "slug", "=text", "post__title", "forbidden_posts__title"]
+
 
 admin.site.register(Channel, ChannelAdmin)
 
