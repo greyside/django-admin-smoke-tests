@@ -6,7 +6,7 @@ import django
 from django.contrib import admin, auth
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Model
 from django.db.models.fields.files import FieldFile
@@ -305,18 +305,14 @@ class AdminSiteSmokeTestMixin(object):
             self.prepare_models(model, model_admin, "changelist view", quantity=5)
 
         # make sure no errors happen here
-        try:
-            response = model_admin.changelist_view(request)
+        response = model_admin.changelist_view(request)
+
+        if hasattr(
+            model_admin, "has_view_permission"
+        ) and model_admin.has_view_permission(request):
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied as e:
-            # this error is commonly raised by ModelAdmins that don't allow
-            # changelist view
-            logging.exception(
-                e,
-                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
-            )
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
@@ -326,18 +322,11 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request(model, model_admin, params=QueryDict("q=test"))
 
         # make sure no errors happen here
-        try:
-            response = model_admin.changelist_view(request)
+        response = model_admin.changelist_view(request)
+        if model_admin.has_change_permission(request):
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied as e:
-            # this error is commonly raised by ModelAdmins that don't allow
-            # changelist view.
-            logging.exception(
-                e,
-                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
-            )
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
@@ -347,18 +336,11 @@ class AdminSiteSmokeTestMixin(object):
         request = self.get_request(model, model_admin)
 
         # make sure no errors happen here
-        try:
+        if model_admin.has_add_permission(request):
             response = model_admin.add_view(request)
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
-        except PermissionDenied as e:
-            # this error is commonly raised by ModelAdmins that don't allow
-            # adding.
-            logging.exception(
-                e,
-                f"PermissionDenied for {model_admin} on  {model_path(model)}, skipping smoke test",
-            )
 
     @for_all_model_admins
     def test_change_view(self, model, model_admin):
@@ -396,25 +378,11 @@ class AdminSiteSmokeTestMixin(object):
         request = self.post_request(model, model_admin)
         form = model_admin.get_form(request)
         request = self.post_request(model, model_admin, post_data=form_data(form, item))
-        try:
+        if model_admin.has_change_permission(request):
             response = model_admin.change_view(request, object_id=str(pk))
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
-
-        except ValidationError as e:
-            # This the form was sent, but did not pass it's validation
-            logging.exception(
-                e,
-                f"Validation error for {model_admin} on  {model_path(model)}, skipping smoke test",
-            )
-        except PermissionDenied as e:
-            # This error is commonly raised by ModelAdmin if the user doesn't have
-            # permission to change the object
-            logging.exception(
-                e,
-                f"PermissionDenied was encountered for {model_admin} on {model_path(model)}.",
-            )
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
