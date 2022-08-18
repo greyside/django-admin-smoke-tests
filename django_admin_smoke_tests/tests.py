@@ -34,10 +34,10 @@ def for_all_model_admins(fn):
     return test_deco
 
 
-def form_data(form, item):
+def form_data(form, instance):
     data = {}
     for field in form.base_fields:
-        value = getattr(item, field, None)
+        value = getattr(instance, field, None)
         if isinstance(value, FieldFile):
             pass
         elif isinstance(value, Model):
@@ -95,9 +95,12 @@ class AdminSiteSmokeTestMixin(object):
         return modeladmins
 
     def create_superuser(self):
-        return auth.get_user_model().objects.create_superuser(
-            "testuser", "testuser@example.com", "foo"
-        )
+        try:
+            return auth.get_user_model().objects.get(username="superuser")
+        except ObjectDoesNotExist:
+            return auth.get_user_model().objects.create_superuser(
+                "superuser", "testuser@example.com", "foo"
+            )
 
     def setUp(self):
         super().setUp()
@@ -235,12 +238,8 @@ class AdminSiteSmokeTestMixin(object):
     def specified_fields_func(self, model, model_admin):
         attr_set = self.get_attr_set(model, model_admin)
 
-        instance = model.objects.last()
-
+        instance = self.get_instance(model, model_admin)
         if not instance:
-            warnings.warn(
-                f"No {model_path(model)} data created to test fields on {model_admin}."
-            )
             return
 
         for attr in attr_set:
@@ -280,7 +279,7 @@ class AdminSiteSmokeTestMixin(object):
     def get_absolute_url_func(self, model, model_admin):
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
-            instance = model.objects.last()
+            instance = self.get_instance(model, model_admin, warn=False)
             # Otherwise create a minimal instance
             if not instance:
                 instance = model(pk=1)
@@ -371,14 +370,13 @@ class AdminSiteSmokeTestMixin(object):
         self.change_view_func(model, model_admin)
 
     def change_view_func(self, model, model_admin):
-        item = model.objects.last()
-        if not item or model._meta.proxy:
+        instance = self.get_instance(model, model_admin)
+        if not instance:
             return
-        pk = item.pk
         request = self.get_request(model, model_admin)
 
         if model_admin.has_change_permission(request):
-            response = model_admin.change_view(request, object_id=str(pk))
+            response = model_admin.change_view(request, object_id=str(instance.pk))
             if isinstance(response, django.template.response.TemplateResponse):
                 # make sure no errors happen here
                 response.render()
@@ -388,20 +386,27 @@ class AdminSiteSmokeTestMixin(object):
     def test_change_post(self, model, model_admin):
         self.change_post_func(model, model_admin)
 
-    def change_post_func(self, model, model_admin):
-        item = model.objects.last()
-        if not item:
-            return
+    def get_instance(self, model, model_admin, warn=True):
         if model._meta.proxy:
             return
-        pk = item.pk
+        instance = model.objects.last()
+        if not instance and warn:
+            warnings.warn(f"No {model_path(model)} data created to test {model_admin}.")
+        return instance
+
+    def change_post_func(self, model, model_admin):
+        instance = self.get_instance(model, model_admin)
+        if not instance:
+            return
 
         # Get form and use it to create POST data
         request = self.post_request(model, model_admin)
         form = model_admin.get_form(request)
-        request = self.post_request(model, model_admin, post_data=form_data(form, item))
+        request = self.post_request(
+            model, model_admin, post_data=form_data(form, instance)
+        )
         if model_admin.has_change_permission(request):
-            response = model_admin.change_view(request, object_id=str(pk))
+            response = model_admin.change_view(request, object_id=str(instance.pk))
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])

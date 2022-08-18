@@ -43,6 +43,11 @@ class Channel(_Abstract):
         ordering = ["title"]
 
 
+class ProxyChannel(Channel):
+    class Meta:
+        proxy = True
+
+
 class AbstractPost(_Abstract):
     SUMMARY_LENGTH = 50
 

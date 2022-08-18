@@ -1,3 +1,5 @@
+import warnings
+
 from django.contrib import admin
 from django.core.exceptions import FieldError
 from django.test import TestCase
@@ -11,7 +13,7 @@ from .admin import (
     ListFilter,
     PostAdmin,
 )
-from .models import Channel, FailPost, Post
+from .models import Channel, FailPost, Post, ProxyChannel
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
@@ -123,17 +125,19 @@ class UnitTest(TestCase):
             },
         )
 
+
+class UnitTestMixin(TestCase):
+    def setUp(self):
+        self.test_class = AdminSiteSmokeTest()
+        self.test_class.setUp()
+        self.sites = admin.site._registry.items()
+
     def test_specified_fields_func(self):
-        test_class = AdminSiteSmokeTest()
-        test_class.setUp()
-        sites = admin.site._registry.items()
-        test_class.specified_fields_func(Channel, dict(sites)[Channel])
-        test_class.specified_fields_func(Post, dict(sites)[Post])
+        self.test_class.specified_fields_func(Channel, dict(self.sites)[Channel])
+        self.test_class.specified_fields_func(Post, dict(self.sites)[Post])
 
     def test_prepare_models(self):
-        test_class = AdminSiteSmokeTest()
-        test_class.setUp()
-        channels = test_class.prepare_models(Channel)
+        channels = self.test_class.prepare_models(Channel)
         self.assertTrue(isinstance(channels[0], Channel))
 
     def test_prepare_models_failure(self):
@@ -153,3 +157,71 @@ class UnitTest(TestCase):
         channels = test_class.prepare_models(Channel)
         self.assertTrue(isinstance(channels[0], Channel))
         self.assertEquals(channels[0].text, "Created by recipe")
+
+    def test_get_absolute_url(self):
+        self.test_class.get_absolute_url_func(Channel, dict(self.sites)[Channel])
+        self.test_class.get_absolute_url_func(Post, dict(self.sites)[Post])
+
+    def test_change_view_func(self):
+        self.test_class.change_view_func(Channel, dict(self.sites)[Channel])
+        self.test_class.change_view_func(Post, dict(self.sites)[Post])
+
+    def test_change_post_func(self):
+        self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
+        self.test_class.change_post_func(Post, dict(self.sites)[Post])
+
+
+class UnitTestMixinNoInstances(TestCase):
+    def setUp(self):
+        self.sites = admin.site._registry.items()
+
+        class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
+            superuser_username = "superuser1"
+
+            def prepare_models(self, model, quantity=1):
+                return
+
+        self.test_class = MyAdminSiteSmokeTest()
+        self.test_class.setUp()
+
+    def test_get_absolute_url(self):
+        self.test_class.get_absolute_url_func(Channel, dict(self.sites)[Channel])
+        self.test_class.get_absolute_url_func(Post, dict(self.sites)[Post])
+
+    def test_specified_fields_func(self):
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Channel data created to test main.ChannelAdmin.",
+        ):
+            self.test_class.specified_fields_func(Channel, dict(self.sites)[Channel])
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Post data created to test main.PostAdmin.",
+        ):
+            self.test_class.specified_fields_func(Post, dict(self.sites)[Post])
+
+    def test_change_view_func(self):
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Channel data created to test main.ChannelAdmin.",
+        ):
+            self.test_class.change_view_func(Channel, dict(self.sites)[Channel])
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Post data created to test main.PostAdmin.",
+        ):
+            self.test_class.change_view_func(Post, dict(self.sites)[Post])
+
+    def test_change_post_func(self):
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Channel data created to test main.ChannelAdmin.",
+        ):
+            self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
+        with warnings.catch_warnings():
+            self.test_class.change_post_func(ProxyChannel, dict(self.sites)[Channel])
+        with self.assertWarnsRegex(
+            Warning,
+            "No test_project.main.models.Post data created to test main.PostAdmin.",
+        ):
+            self.test_class.change_post_func(Post, dict(self.sites)[Post])
