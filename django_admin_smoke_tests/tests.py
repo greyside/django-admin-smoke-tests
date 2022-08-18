@@ -3,6 +3,8 @@ from typing import List
 
 import django
 from django.contrib import admin, auth
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
 from django.http.request import QueryDict
@@ -87,8 +89,14 @@ class AdminSiteSmokeTestMixin(object):
 
         admin.autodiscover()
 
-    def get_request(self, params=None):
-        request = self.factory.get("/", params)
+    def get_url(self, model, model_admin):
+        return "/"
+
+    def get_request(self, model, model_admin, params=None):
+        request = self.factory.get(self.get_url(model, model_admin), params)
+        middleware = SessionMiddleware(request)
+        middleware.process_request(request)
+        setattr(request, "_messages", FallbackStorage(request))
 
         request.user = self.superuser
         return request
@@ -105,8 +113,11 @@ class AdminSiteSmokeTestMixin(object):
             print(f"Not able to create {model} data for {view_string}:")
             print("\t%s" % str(e).replace("\n", "\n\t"))
 
-    def post_request(self, post_data={}, params=None):
-        request = self.factory.post("/", params, post_data=post_data)
+    def post_request(self, model, model_admin, post_data={}, **params):
+        request = self.factory.post(self.get_url(model, model_admin), post_data, **params)
+        middleware = SessionMiddleware(request)
+        middleware.process_request(request)
+        setattr(request, "_messages", FallbackStorage(request))
 
         request.user = self.superuser
         request._dont_enforce_csrf_checks = True
@@ -118,7 +129,7 @@ class AdminSiteSmokeTestMixin(object):
         return val
 
     def get_fieldsets(self, model, model_admin):
-        request = self.get_request()
+        request = self.get_request(model, model_admin)
         return model_admin.get_fieldsets(request, obj=model())
 
     def get_attr_set(self, model, model_admin):
@@ -202,7 +213,7 @@ class AdminSiteSmokeTestMixin(object):
         self.queryset_func(model, model_admin)
 
     def queryset_func(self, model, model_admin):
-        request = self.get_request()
+        request = self.get_request(model, model_admin)
 
         with transaction.atomic():
             self.prepare_models(model, model_admin, "queryset tests", quantity=5)
@@ -230,7 +241,7 @@ class AdminSiteSmokeTestMixin(object):
         self.changelist_view_func(model, model_admin)
 
     def changelist_view_func(self, model, model_admin):
-        request = self.get_request()
+        request = self.get_request(model, model_admin)
 
         with transaction.atomic():
             self.prepare_models(model, model_admin, "changelist view", quantity=5)
@@ -253,7 +264,7 @@ class AdminSiteSmokeTestMixin(object):
         self.changelist_view_search_func(model, model_admin)
 
     def changelist_view_search_func(self, model, model_admin):
-        request = self.get_request(params=QueryDict("q=test"))
+        request = self.get_request(model, model_admin, params=QueryDict("q=test"))
 
         # make sure no errors happen here
         try:
@@ -273,7 +284,7 @@ class AdminSiteSmokeTestMixin(object):
         self.add_view_func(model, model_admin)
 
     def add_view_func(self, model, model_admin):
-        request = self.get_request()
+        request = self.get_request(model, model_admin)
 
         # make sure no errors happen here
         try:
@@ -298,7 +309,7 @@ class AdminSiteSmokeTestMixin(object):
         if not item or model._meta.proxy:
             return
         pk = item.pk
-        request = self.get_request()
+        request = self.get_request(model, model_admin)
 
         # make sure no errors happen here
         response = model_admin.change_view(request, object_id=str(pk))
@@ -320,7 +331,7 @@ class AdminSiteSmokeTestMixin(object):
         if model._meta.proxy:
             return
         pk = item.pk
-        request = self.post_request()
+        request = self.post_request(model, model_admin)
         try:
             response = model_admin.change_view(request, object_id=str(pk))
             if isinstance(response, django.template.response.TemplateResponse):
