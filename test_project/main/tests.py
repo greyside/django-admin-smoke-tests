@@ -99,6 +99,7 @@ class UnitTest(TestCase):
                 "enrollment",
                 "forbidden_posts__title",
                 "post__title",
+                "file",
             },
         )
         self.assertSetEqual(
@@ -117,6 +118,7 @@ class UnitTest(TestCase):
                 "published",
                 "channel__followers__first_name",
                 "author__first_name",
+                ("custom_summary", admin.DateFieldListFilter),
                 ListFilter,
             },
         )
@@ -127,3 +129,27 @@ class UnitTest(TestCase):
         sites = admin.site._registry.items()
         test_class.specified_fields_func(Channel, dict(sites)[Channel])
         test_class.specified_fields_func(Post, dict(sites)[Post])
+
+    def test_prepare_models(self):
+        test_class = AdminSiteSmokeTest()
+        test_class.setUp()
+        channels = test_class.prepare_models(Channel)
+        self.assertTrue(isinstance(channels[0], Channel))
+
+    def test_prepare_models_failure(self):
+        test_class = AdminSiteSmokeTest()
+        test_class.recipes_prefix = "foo"
+        test_class.setUp()
+        with self.assertWarnsRegex(
+            Warning,
+            "Not able to create <class 'test_project.main.models.Channel'> data.",
+        ):
+            test_class.prepare_models(Channel)
+
+    def test_prepare_models_recipe(self):
+        test_class = AdminSiteSmokeTest()
+        test_class.recipes_prefix = "test_project.main"
+        test_class.setUp()
+        channels = test_class.prepare_models(Channel)
+        self.assertTrue(isinstance(channels[0], Channel))
+        self.assertEquals(channels[0].text, "Created by recipe")

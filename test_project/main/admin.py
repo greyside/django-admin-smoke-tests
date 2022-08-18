@@ -54,6 +54,7 @@ class PostAdmin(admin.ModelAdmin):
         "created",
         "modified",
         "published",
+        ("custom_summary", admin.DateFieldListFilter),
         ListFilter,
     )
     readonly_fields = ["created", "modified", "time_diff"]

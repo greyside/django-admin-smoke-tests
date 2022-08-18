@@ -12,6 +12,7 @@ class _Abstract(models.Model):
     title = models.CharField(max_length=140, unique=True)
     text = models.TextField(default="")
     rendered_text = models.TextField(default="", blank=True)
+    file = models.FileField(blank=True, null=True)
 
     def __unicode__(self):
         return self.title
