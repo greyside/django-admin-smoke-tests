@@ -73,12 +73,15 @@ class AdminSiteSmokeTestMixin(object):
         ]
         return modeladmins
 
-    def setUp(self):
-        super(AdminSiteSmokeTestMixin, self).setUp()
-
-        self.superuser = auth.get_user_model().objects.create_superuser(
+    def create_superuser(self):
+        return auth.get_user_model().objects.create_superuser(
             "testuser", "testuser@example.com", "foo"
         )
+
+    def setUp(self):
+        super().setUp()
+
+        self.superuser = self.create_superuser()
 
         self.factory = RequestFactory()
 
