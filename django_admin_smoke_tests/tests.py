@@ -34,10 +34,6 @@ def for_all_model_admins(fn):
     return test_deco
 
 
-def format_exception(e):
-    return str(e).replace("\\n", "\\n\\t")
-
-
 def form_data(form, item):
     data = {}
     for field in form.base_fields:
