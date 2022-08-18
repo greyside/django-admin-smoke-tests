@@ -122,11 +122,14 @@ class AdminSiteSmokeTestMixin(object):
         return baker.make(model, _quantity=quantity)
 
     def prepare_models(self, model, model_admin, view_string, quantity=1):
+        """Prepare models by model_bakery, if it is not possible, return None"""
         try:
             return self.create_models(model, model_admin, view_string, quantity)
         except Exception as e:
-            print(f"Not able to create {model} data for {view_string}:")
-            print("\t%s" % str(e).replace("\n", "\n\t"))
+            logging.exception(
+                e,
+                f"Not able to create {model} data for {view_string}.",
+            )
 
     def post_request(self, model, model_admin, post_data={}, **params):
         request = self.factory.post(
@@ -263,7 +266,8 @@ class AdminSiteSmokeTestMixin(object):
     def get_absolute_url_func(self, model, model_admin):
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
-            instance = model.objects.first()
+            with transaction.atomic():
+                instance = self.prepare_models(model, model_admin, "get absolute url")
             # Otherwise create a minimal instance
             if not instance:
                 instance = model(pk=1)
