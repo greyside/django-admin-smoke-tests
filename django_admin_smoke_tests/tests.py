@@ -295,12 +295,12 @@ class AdminSiteSmokeTestMixin(object):
         """Run the changelist_view method on the model admin."""
         request = self.get_request(model, model_admin)
 
-        # make sure no errors happen here
-        response = model_admin.changelist_view(request)
+        if not hasattr(
+            model_admin, "has_view_permission"  # Django <= 2.0
+        ) or model_admin.has_view_permission(request):
+            # make sure no errors happen here
+            response = model_admin.changelist_view(request)
 
-        if hasattr(
-            model_admin, "has_view_permission"
-        ) and model_admin.has_view_permission(request):
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
@@ -313,9 +313,9 @@ class AdminSiteSmokeTestMixin(object):
     def changelist_filters_view_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
-        if hasattr(
-            model_admin, "has_view_permission"
-        ) and model_admin.has_view_permission(request):
+        if not hasattr(
+            model_admin, "has_view_permission"  # Django <= 2.0
+        ) or model_admin.has_view_permission(request):
             for filter in model_admin.list_filter:
                 if isinstance(filter, tuple):
                     filter = filter[0]
@@ -345,9 +345,9 @@ class AdminSiteSmokeTestMixin(object):
     def changelist_view_search_func(self, model, model_admin):
         request = self.get_request(model, model_admin, params=QueryDict("q=test"))
 
-        # make sure no errors happen here
-        response = model_admin.changelist_view(request)
         if model_admin.has_change_permission(request):
+            # make sure no errors happen here
+            response = model_admin.changelist_view(request)
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
             self.assertIn(response.status_code, [200, 302])
@@ -359,8 +359,8 @@ class AdminSiteSmokeTestMixin(object):
     def add_view_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
-        # make sure no errors happen here
         if model_admin.has_add_permission(request):
+            # make sure no errors happen here
             response = model_admin.add_view(request)
             if isinstance(response, django.template.response.TemplateResponse):
                 response.render()
@@ -377,11 +377,12 @@ class AdminSiteSmokeTestMixin(object):
         pk = item.pk
         request = self.get_request(model, model_admin)
 
-        # make sure no errors happen here
-        response = model_admin.change_view(request, object_id=str(pk))
-        if isinstance(response, django.template.response.TemplateResponse):
-            response.render()
-        self.assertIn(response.status_code, [200, 302])
+        if model_admin.has_change_permission(request):
+            response = model_admin.change_view(request, object_id=str(pk))
+            if isinstance(response, django.template.response.TemplateResponse):
+                # make sure no errors happen here
+                response.render()
+            self.assertIn(response.status_code, [200, 302])
 
     @for_all_model_admins
     def test_change_post(self, model, model_admin):

@@ -101,6 +101,9 @@ class ForbiddenPostAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         False
 
+    def has_view_permission(self, request, obj=None):
+        False
+
 
 admin.site.register(Post, PostAdmin)
 admin.site.register(FailPost, FailPostAdmin)
