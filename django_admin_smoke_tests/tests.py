@@ -138,9 +138,13 @@ class AdminSiteSmokeTestMixin(object):
         request._dont_enforce_csrf_checks = True
         return request
 
-    def strip_minus(self, attr, val):
+    def strip(self, attr, val):
         if attr in self.strip_minus_attrs and val[0] == "-":
             val = val[1:]
+
+        if attr == "search_fields":
+            for ch in ["^", "=", "@"]:
+                val = val.lstrip(ch)
         return val
 
     def get_fieldsets(self, model, model_admin):
@@ -151,18 +155,18 @@ class AdminSiteSmokeTestMixin(object):
         attr_set = []
 
         for attr in self.iter_attributes:
-            attr_set += [self.strip_minus(attr, a) for a in getattr(model_admin, attr)]
+            attr_set += [self.strip(attr, a) for a in getattr(model_admin, attr)]
 
         for attr in self.iter_or_falsy_attributes:
             attrs = getattr(model_admin, attr, None)
 
             if isinstance(attrs, list) or isinstance(attrs, tuple):
-                attr_set += [self.strip_minus(attr, a) for a in attrs]
+                attr_set += [self.strip(attr, a) for a in attrs]
 
         for fieldset in self.get_fieldsets(model, model_admin):
             for attr in fieldset[1]["fields"]:
                 if isinstance(attr, list) or isinstance(attr, tuple):
-                    attr_set += [self.strip_minus(fieldset, a) for a in attr]
+                    attr_set += [self.strip(fieldset, a) for a in attr]
                 else:
                     attr_set.append(attr)
 
@@ -172,7 +176,7 @@ class AdminSiteSmokeTestMixin(object):
             val = getattr(model_admin, attr, None)
 
             if val:
-                attr_set.add(self.strip_minus(attr, val))
+                attr_set.add(self.strip(attr, val))
 
         return attr_set
 

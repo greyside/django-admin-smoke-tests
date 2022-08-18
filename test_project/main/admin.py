@@ -64,7 +64,12 @@ class PostAdmin(admin.ModelAdmin):
     ]
     date_hierarchy = "created"
 
-    search_fields = ["title", "text"]
+    search_fields = [
+        "title",
+        "text",
+        "^author__first_name",
+        "=channel__followers__first_name",
+    ]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "author":
