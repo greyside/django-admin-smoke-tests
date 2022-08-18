@@ -89,6 +89,12 @@ class AdminSiteSmokeTestMixin(object):
                 and model._meta.app_label not in self.exclude_apps
             )
         ]
+        if getattr(self, "only_models", None):
+            modeladmins = [
+                (model, model_admin)
+                for (model, model_admin) in modeladmins
+                if model.__name__ in self.only_models
+            ]
         return modeladmins
 
     def create_superuser(self):
