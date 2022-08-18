@@ -29,11 +29,7 @@ jobs:
             PYTHON_VERSION: '3.7'
           - DJANGO_VERSION: '40'
             PYTHON_VERSION: '3.7'
-          - DJANGO_VERSION: '31'
-            PYTHON_VERSION: '3.10'
-          - DJANGO_VERSION: '30'
-            PYTHON_VERSION: '3.10'
-          - DJANGO_VERSION: '22'
+          - DJANGO_VERSION: '20'
             PYTHON_VERSION: '3.10'
       fail-fast: false
 
