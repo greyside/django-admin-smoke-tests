@@ -283,7 +283,8 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.changelist_view(request)
-            response.render()
+            if isinstance(response, django.template.response.TemplateResponse):
+                response.render()
             self.assertIn(response.status_code, [200, 302])
         except PermissionDenied as e:
             # this error is commonly raised by ModelAdmins that don't allow
@@ -303,7 +304,8 @@ class AdminSiteSmokeTestMixin(object):
         # make sure no errors happen here
         try:
             response = model_admin.changelist_view(request)
-            response.render()
+            if isinstance(response, django.template.response.TemplateResponse):
+                response.render()
             self.assertIn(response.status_code, [200, 302])
         except PermissionDenied as e:
             # this error is commonly raised by ModelAdmins that don't allow
