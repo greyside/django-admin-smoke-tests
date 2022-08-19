@@ -16,6 +16,8 @@ from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
 from model_bakery import baker
 
+from django_admin_smoke_tests import baker_field_generators
+
 
 logger = logging.getLogger(__name__)
 
