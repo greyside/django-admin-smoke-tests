@@ -140,14 +140,35 @@ class AdminSiteSmokeTestMixin(object):
 
     def create_models(self, model, model_admin, quantity=1):
         """Create models with model_bakery"""
+        basic_options = {
+            "_quantity": quantity,
+            "_create_files": True,
+            "_refresh_after_create": True,
+        }
         try:
             return baker.make_recipe(
                 f"{self.recipes_prefix}.{model.__name__}",
-                _quantity=quantity,
-                _create_files=True,
+                _fill_optional=True,
+                **basic_options,
             )
-        except (AttributeError, TypeError):
-            return baker.make(model, _quantity=quantity, _create_files=True)
+        except (AttributeError, TypeError, ValueError):
+            try:
+                return baker.make_recipe(
+                    f"{self.recipes_prefix}.{model.__name__}",
+                    **basic_options,
+                )
+            except (AttributeError, TypeError, ValueError):
+                try:
+                    return baker.make(
+                        model,
+                        _fill_optional=True,
+                        **basic_options,
+                    )
+                except (AttributeError, TypeError, ValueError):
+                    return baker.make(
+                        model,
+                        **basic_options,
+                    )
 
     def prepare_models(self, model, model_admin, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
