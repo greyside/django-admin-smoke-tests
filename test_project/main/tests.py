@@ -63,6 +63,7 @@ class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
 
 
 class ForbiddenAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
+    strict_mode = True
     fixtures = []
     exclude_modeladmins = [FailPostAdmin, PostAdmin, ChannelAdmin]
 

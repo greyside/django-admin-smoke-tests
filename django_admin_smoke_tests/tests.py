@@ -56,11 +56,18 @@ def form_data(form, instance):
     return data
 
 
+class ModelAdminCreationException(Exception):
+    def __init__(self, message, original_exception):
+        self.original_exception = original_exception
+        return super().__init__(message)
+
+
 class AdminSiteSmokeTestMixin(object):
     modeladmins = None
     exclude_apps: List[str] = []
     exclude_modeladmins: List[str] = []
     recipes_prefix = ""
+    strict_mode = False
 
     single_attributes = ["date_hierarchy"]
     iter_attributes = [
@@ -144,13 +151,19 @@ class AdminSiteSmokeTestMixin(object):
 
     def prepare_models(self, model, model_admin, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
-        try:
-            with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
+        with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
+            try:
                 return self.create_models(model, model_admin, quantity)
-        except Exception as e:
-            warning_string = f"Not able to create {model_path(model)} data for {model_admin} creation."
-            logging.exception(e, warning_string)
-            warnings.warn(warning_string)
+            except Exception as e:
+                warning_string = f"Not able to create {model_path(model)} data for {model_admin} creation."
+                logging.exception(e, warning_string)
+                warnings.warn(warning_string)
+                if self.strict_mode:
+                    raise ModelAdminCreationException(
+                        "Above exception occured while trying to create model "
+                        f"{model_path(model)} data for {model_admin} ModelAdmin.",
+                        e,
+                    ) from e
 
     def prepare_all_models(self):
         """Prepare all models for all modeladmins"""
@@ -397,7 +410,10 @@ class AdminSiteSmokeTestMixin(object):
             return
         instance = model.objects.last()
         if not instance and warn:
-            warnings.warn(f"No {model_path(model)} data created to test {model_admin}.")
+            warn_message = f"No {model_path(model)} data created to test {model_admin}."
+            if self.strict_mode:
+                raise AssertionError(warn_message)
+            warnings.warn(warn_message)
         return instance
 
     def change_post_func(self, model, model_admin):
