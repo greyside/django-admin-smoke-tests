@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
 from model_bakery import baker
 
-from django_admin_smoke_tests import baker_field_generators
+from django_admin_smoke_tests import baker_field_generators  # noqa
 
 
 logger = logging.getLogger(__name__)
