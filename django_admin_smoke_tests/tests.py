@@ -101,12 +101,41 @@ class AdminSiteSmokeTestMixin(object):
                 and model._meta.app_label not in self.exclude_apps
             )
         ]
-        if getattr(self, "only_modeladmins", None):
+
+        only_modeladmins = getattr(self, "only_modeladmins", [])
+        only_apps = getattr(self, "only_apps", [])
+        if only_modeladmins != [] or only_apps != []:
             modeladmins = [
                 (model, model_admin)
                 for (model, model_admin) in modeladmins
-                if match_class(model_admin.__class__, self.only_modeladmins)
+                if match_class(model_admin.__class__, only_modeladmins)
+                or model._meta.app_label in only_apps
             ]
+
+            missing_apps = []
+            for app in only_apps:
+                if not any(app == m._meta.app_label for m, _ in modeladmins):
+                    missing_apps.append(app)
+            if missing_apps:
+                warnings.warn(
+                    "Not all modeladmins in only_apps were found,"
+                    f"using only modeladmin {missing_apps}",
+                    UserWarning,
+                )
+
+            missing_modeladmins = []
+            for model_admin in only_modeladmins:
+                if not any(
+                    match_class(m.__class__, [model_admin]) for _, m in modeladmins
+                ):
+                    missing_modeladmins.append(model_admin)
+            if missing_modeladmins:
+                warnings.warn(
+                    "Not all modeladmins in only_modeladmins were found,"
+                    f"using only modeladmin {missing_modeladmins}",
+                    UserWarning,
+                )
+
         return modeladmins
 
     def create_superuser(self):
