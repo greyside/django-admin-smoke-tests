@@ -167,9 +167,10 @@ class UnitTestMixin(TestCase):
         self.assertTrue(isinstance(channels[0], Channel))
 
     def test_prepare_models_failure(self):
-        test_class = AdminSiteSmokeTest()
-        test_class.recipes_prefix = "foo"
-        test_class.setUp()
+        class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
+            recipes_prefix = "foo"
+
+        test_class = MyAdminSiteSmokeTest()
         with self.assertWarnsRegex(
             Warning,
             "Not able to create test_project.main.models.Channel data.",
@@ -177,9 +178,10 @@ class UnitTestMixin(TestCase):
             test_class.prepare_models(Channel, ChannelAdmin)
 
     def test_prepare_models_recipe(self):
-        test_class = AdminSiteSmokeTest()
-        test_class.recipes_prefix = "test_project.main"
-        test_class.setUp()
+        class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
+            recipes_prefix = "test_project.main"
+
+        test_class = MyAdminSiteSmokeTest()
         channels = test_class.prepare_models(Channel, ChannelAdmin)
         self.assertTrue(isinstance(channels[0], Channel))
         self.assertEquals(channels[0].text, "Created by recipe")

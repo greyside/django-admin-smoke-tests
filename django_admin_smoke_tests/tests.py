@@ -8,7 +8,6 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
 from django.db.models import Model
 from django.db.models.fields.files import FieldFile
 from django.http.request import QueryDict
@@ -48,7 +47,10 @@ def for_all_model_admins(fn):
 def form_data(form, instance):
     data = {}
     for field in form.base_fields:
-        value = getattr(instance, field, None)
+        try:
+            value = getattr(instance, field, None)
+        except ObjectDoesNotExist:
+            value = None
         if isinstance(value, FieldFile):
             pass
         elif isinstance(value, Model):
@@ -90,20 +92,21 @@ class AdminSiteSmokeTestMixin(object):
 
     strip_minus_attrs = ("ordering",)
 
-    def get_modeladmins(self):
-        modeladmins = self.modeladmins or admin.site._registry.items()
+    @classmethod
+    def get_modeladmins(cls):
+        modeladmins = cls.modeladmins or admin.site._registry.items()
 
         modeladmins = [
             (model, model_admin)
             for (model, model_admin) in modeladmins
             if (
-                not match_class(model_admin.__class__, self.exclude_modeladmins)
-                and model._meta.app_label not in self.exclude_apps
+                not match_class(model_admin.__class__, cls.exclude_modeladmins)
+                and model._meta.app_label not in cls.exclude_apps
             )
         ]
 
-        only_modeladmins = getattr(self, "only_modeladmins", [])
-        only_apps = getattr(self, "only_apps", [])
+        only_modeladmins = getattr(cls, "only_modeladmins", [])
+        only_apps = getattr(cls, "only_apps", [])
         if only_modeladmins != [] or only_apps != []:
             modeladmins = [
                 (model, model_admin)
@@ -146,6 +149,11 @@ class AdminSiteSmokeTestMixin(object):
                 "superuser", "testuser@example.com", "foo"
             )
 
+    @classmethod
+    def setUpTestData(cls):
+        """Load initial data for the TestCase"""
+        cls.prepare_all_models()
+
     def setUp(self):
         super().setUp()
 
@@ -154,8 +162,6 @@ class AdminSiteSmokeTestMixin(object):
         self.factory = RequestFactory()
 
         admin.autodiscover()
-
-        self.prepare_all_models()
 
     def get_url(self, model, model_admin):
         return "/"
@@ -169,7 +175,8 @@ class AdminSiteSmokeTestMixin(object):
         request.user = self.superuser
         return request
 
-    def create_models(self, model, model_admin, quantity=1):
+    @classmethod
+    def create_models(cls, model, model_admin, quantity=1):
         """Create models with model_bakery"""
         basic_options = {
             "_quantity": quantity,
@@ -178,14 +185,14 @@ class AdminSiteSmokeTestMixin(object):
         }
         try:
             return baker.make_recipe(
-                f"{self.recipes_prefix}.{model.__name__}",
+                f"{cls.recipes_prefix}.{model.__name__}",
                 _fill_optional=True,
                 **basic_options,
             )
         except (AttributeError, TypeError, ValueError):
             try:
                 return baker.make_recipe(
-                    f"{self.recipes_prefix}.{model.__name__}",
+                    f"{cls.recipes_prefix}.{model.__name__}",
                     **basic_options,
                 )
             except (AttributeError, TypeError, ValueError):
@@ -201,27 +208,28 @@ class AdminSiteSmokeTestMixin(object):
                         **basic_options,
                     )
 
-    def prepare_models(self, model, model_admin, quantity=1):
+    @classmethod
+    def prepare_models(cls, model, model_admin, quantity=1):
         """Prepare models by model_bakery, if it is not possible, return None"""
         with override_settings(MPTT_ALLOW_TESTING_GENERATORS=True):
             try:
-                return self.create_models(model, model_admin, quantity)
+                return cls.create_models(model, model_admin, quantity)
             except Exception as e:
                 warning_string = f"Not able to create {model_path(model)} data for {model_admin} creation."
                 logging.exception(e, warning_string)
                 warnings.warn(warning_string)
-                if self.strict_mode:
+                if cls.strict_mode:
                     raise ModelAdminCreationException(
                         "Above exception occured while trying to create model "
                         f"{model_path(model)} data for {model_admin} ModelAdmin.",
                         e,
                     ) from e
 
-    def prepare_all_models(self):
+    @classmethod
+    def prepare_all_models(cls):
         """Prepare all models for all modeladmins"""
-        for model, model_admin in self.get_modeladmins():
-            with transaction.atomic():
-                self.prepare_models(model, model_admin, quantity=5)
+        for model, model_admin in cls.get_modeladmins():
+            cls.prepare_models(model, model_admin, quantity=5)
 
     def post_request(self, model, model_admin, post_data={}, **params):
         request = self.factory.post(
