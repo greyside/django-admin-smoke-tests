@@ -3,6 +3,7 @@ import warnings
 from django.contrib import admin
 from django.core.exceptions import FieldError
 from django.test import TestCase
+from model_bakery import baker
 
 from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
 
@@ -13,7 +14,7 @@ from .admin import (
     ListFilter,
     PostAdmin,
 )
-from .models import Channel, FailPost, Post, ProxyChannel
+from .models import Channel, FailPost, HasPrimarySlug, Post, ProxyChannel
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
@@ -56,7 +57,9 @@ class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
 
     def changelist_view_func(self, model, model_admin):
         if model_admin.__class__ == FailPostAdmin:
-            with self.assertRaisesRegex(Exception, ""):
+            with self.assertRaisesRegex(
+                Exception, "This exception should be tested for"
+            ):
                 super().changelist_view_func(model, model_admin)
         else:
             super().changelist_view_func(model, model_admin)
@@ -131,6 +134,7 @@ class UnitTestMixin(TestCase):
     def setUp(self):
         self.test_class = AdminSiteSmokeTest()
         self.test_class.setUp()
+        self.test_class.client = self.client
         self.sites = admin.site._registry.items()
 
     def test_has_attr(self):
@@ -194,9 +198,37 @@ class UnitTestMixin(TestCase):
         self.test_class.change_view_func(Channel, dict(self.sites)[Channel])
         self.test_class.change_view_func(Post, dict(self.sites)[Post])
 
+    def test_change_view_func_encode_url(self):
+        """
+        Test with UUID PK that doesn't encode well in URLs.
+        The _5B sekvention makes problems if not correctly encoded.
+        """
+        has_primary_slug = baker.make(
+            "HasPrimarySlug", pk="zk5TAeSTSeHY1PNmIaujuk_p7qxxS4ixkNGqC_5Bttfk81_0D6"
+        )
+        self.test_class.change_view_func(
+            HasPrimarySlug,
+            dict(self.sites)[HasPrimarySlug],
+            has_primary_slug,
+        )
+
     def test_change_post_func(self):
         self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
         self.test_class.change_post_func(Post, dict(self.sites)[Post])
+
+    def test_change_post_func_encode_url(self):
+        """
+        Test with UUID PK that doesn't encode well in URLs.
+        The _5B sekvention makes problems if not correctly encoded.
+        """
+        has_primary_slug = baker.make(
+            "HasPrimarySlug", pk="zk5TAeSTSeHY1PNmIaujuk_p7qxxS4ixkNGqC_5Bttfk81_0D6"
+        )
+        self.test_class.change_post_func(
+            HasPrimarySlug,
+            dict(self.sites)[HasPrimarySlug],
+            has_primary_slug,
+        )
 
 
 class UnitTestMixinNoInstances(TestCase):

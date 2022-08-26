@@ -1,10 +1,12 @@
 import logging
 import warnings
+from datetime import datetime
 from typing import List
 
-import django
+from assert_element import AssertElementMixin
 from django.contrib import admin, auth
 from django.contrib.admin import SimpleListFilter
+from django.contrib.admin.utils import quote
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import ObjectDoesNotExist
@@ -13,6 +15,7 @@ from django.db.models.fields.files import FieldFile
 from django.http.request import QueryDict
 from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
+from django.urls import reverse
 from model_bakery import baker
 
 from django_admin_smoke_tests import baker_field_generators  # noqa
@@ -66,12 +69,13 @@ class ModelAdminCreationException(Exception):
         return super().__init__(message)
 
 
-class AdminSiteSmokeTestMixin(object):
+class AdminSiteSmokeTestMixin(AssertElementMixin):
     modeladmins = None
     exclude_apps: List[str] = []
     exclude_modeladmins: List[str] = []
     recipes_prefix = ""
     strict_mode = False
+    print_responses = False
 
     single_attributes = ["date_hierarchy"]
     iter_attributes = [
@@ -153,6 +157,18 @@ class AdminSiteSmokeTestMixin(object):
     def setUpTestData(cls):
         """Load initial data for the TestCase"""
         cls.prepare_all_models()
+
+    def does_print_responses(self):
+        return self.print_responses
+
+    def print_response(self, response, model, model_admin, view_name):
+        if self.does_print_responses():
+            with open(
+                f"response_{datetime.now():%Y-%m-%d_%H:%M:%S}_{model.__name__ if model else ''}_"
+                f"{model_admin}_{view_name}.html",
+                "w",
+            ) as f:
+                f.write(response.content.decode("utf-8"))
 
     def setUp(self):
         super().setUp()
@@ -373,15 +389,36 @@ class AdminSiteSmokeTestMixin(object):
         """Run the changelist_view method on the model admin."""
         request = self.get_request(model, model_admin)
 
+        self.client.force_login(self.superuser)
         if not hasattr(
             model_admin, "has_view_permission"  # Django <= 2.0
         ) or model_admin.has_view_permission(request):
             # make sure no errors happen here
-            response = model_admin.changelist_view(request)
+            response = self.client.get(
+                reverse(
+                    f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
+                ),
+                follow=True,
+            )
 
-            if isinstance(response, django.template.response.TemplateResponse):
-                response.render()
-            self.assertIn(response.status_code, [200, 302])
+            self.changelist_view_asserts(model, model_admin, response, "changelist")
+
+    def changelist_view_asserts(self, model, model_admin, response, view_name):
+        if view_name is not None:
+            self.print_response(response, model, model_admin, view_name)
+        self.assertIn(response.status_code, [200])
+        self.assertElementContains(
+            response,
+            "h1[id=site-name]",
+            f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
+            f"{response.context_data['site_header']}"
+            "</a></h1>",
+        )
+        self.assertElementContains(
+            response,
+            "div[id=content] h1",
+            f"<h1>Select {model._meta.verbose_name} to change</h1>",
+        )
 
     @for_all_model_admins
     def test_changelist_filters_view(self, model, model_admin):
@@ -391,6 +428,7 @@ class AdminSiteSmokeTestMixin(object):
     def changelist_filters_view_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
+        self.client.force_login(self.superuser)
         if not hasattr(
             model_admin, "has_view_permission"  # Django <= 2.0
         ) or model_admin.has_view_permission(request):
@@ -408,13 +446,16 @@ class AdminSiteSmokeTestMixin(object):
                         (key, lookup[0]) for lookup in filter_instance.lookup_choices
                     ]
                 for key, value in filters:
-                    request = self.get_request(
-                        model, model_admin, params=QueryDict(f"{key}={value}")
+                    response = self.client.get(
+                        reverse(
+                            f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
+                        )
+                        + f"?{key}={value}",
+                        follow=True,
                     )
-                    response = model_admin.changelist_view(request)
-                    if isinstance(response, django.template.response.TemplateResponse):
-                        response.render()
-                    self.assertIn(response.status_code, [200, 302])
+                    self.changelist_view_asserts(
+                        model, model_admin, response, "changelist_filters"
+                    )
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
@@ -423,12 +464,30 @@ class AdminSiteSmokeTestMixin(object):
     def changelist_view_search_func(self, model, model_admin):
         request = self.get_request(model, model_admin, params=QueryDict("q=test"))
 
+        self.client.force_login(self.superuser)
         if model_admin.has_change_permission(request):
             # make sure no errors happen here
-            response = model_admin.changelist_view(request)
-            if isinstance(response, django.template.response.TemplateResponse):
-                response.render()
-            self.assertIn(response.status_code, [200, 302])
+            response = self.client.get(
+                reverse(
+                    f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
+                )
+                + "?q=test",
+                follow=True,
+            )
+            self.changelist_view_asserts(model, model_admin, response, None)
+            self.changelist_view_search_asserts(
+                model, model_admin, response, "changelist_view_search"
+            )
+
+    def changelist_view_search_asserts(self, model, model_admin, response, view_name):
+        """Additional asserts for search test"""
+        self.print_response(response, model, model_admin, view_name)
+        if hasattr(model_admin, "search_fields") and len(model_admin.search_fields) > 0:
+            self.assertElementContains(
+                response,
+                "input[type=text]",
+                '<input type="text" size="40" name="q" value="test" id="searchbar" autofocus="">',
+            )
 
     @for_all_model_admins
     def test_add_view(self, model, model_admin):
@@ -437,29 +496,66 @@ class AdminSiteSmokeTestMixin(object):
     def add_view_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
+        self.client.force_login(self.superuser)
         if model_admin.has_add_permission(request):
             # make sure no errors happen here
-            response = model_admin.add_view(request)
-            if isinstance(response, django.template.response.TemplateResponse):
-                response.render()
-            self.assertIn(response.status_code, [200, 302])
+            response = self.client.get(
+                reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_add"),
+                follow=True,
+            )
+            self.add_view_asserts(model, model_admin, response)
+
+    def add_view_asserts(self, model, model_admin, response):
+        self.print_response(response, model, model_admin, "add_view")
+        self.assertIn(response.status_code, [200])
+        self.assertElementContains(
+            response,
+            "h1[id=site-name]",
+            f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
+            f"{response.context_data['site_header']}"
+            "</a></h1>",
+        )
+        self.assertElementContains(
+            response,
+            "div[id=content] h1",
+            f"<h1>Add {model._meta.verbose_name}</h1>",
+        )
 
     @for_all_model_admins
     def test_change_view(self, model, model_admin):
         self.change_view_func(model, model_admin)
 
-    def change_view_func(self, model, model_admin):
-        instance = self.get_instance(model, model_admin)
+    def change_view_func(self, model, model_admin, instance=None):
+        if not instance:
+            instance = self.get_instance(model, model_admin)
         if not instance:
             return
         request = self.get_request(model, model_admin)
 
+        self.client.force_login(self.superuser)
         if model_admin.has_change_permission(request):
-            response = model_admin.change_view(request, object_id=str(instance.pk))
-            if isinstance(response, django.template.response.TemplateResponse):
-                # make sure no errors happen here
-                response.render()
-            self.assertIn(response.status_code, [200, 302])
+            url = reverse(
+                f"admin:{model._meta.app_label}_{model._meta.model_name}_change",
+                args=(quote(instance.pk),),
+            )
+            response = self.client.get(url, follow=True)
+            self.change_view_asserts(model, model_admin, response, "change_view")
+
+    def change_view_asserts(self, model, model_admin, response, view_name):
+        self.assertIn(response.status_code, [200])
+        self.print_response(response, model, model_admin, view_name)
+        self.assertElementContains(
+            response,
+            "h1[id=site-name]",
+            f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
+            f"{response.context_data['site_header']}"
+            "</a></h1>",
+        )
+        self.assertElementContains(
+            response,
+            "div[id=content] h1",
+            f"<h1>Change {model._meta.verbose_name}</h1>",
+        )
 
     @for_all_model_admins
     def test_change_post(self, model, model_admin):
@@ -476,22 +572,44 @@ class AdminSiteSmokeTestMixin(object):
             warnings.warn(warn_message)
         return instance
 
-    def change_post_func(self, model, model_admin):
-        instance = self.get_instance(model, model_admin)
+    def change_post_func(self, model, model_admin, instance=None):
+        if not instance:
+            instance = self.get_instance(model, model_admin)
         if not instance:
             return
 
         # Get form and use it to create POST data
         request = self.post_request(model, model_admin)
         form = model_admin.get_form(request)
-        request = self.post_request(
-            model, model_admin, post_data=form_data(form, instance)
-        )
+        self.client.force_login(self.superuser)
         if model_admin.has_change_permission(request):
-            response = model_admin.change_view(request, object_id=str(instance.pk))
-            if isinstance(response, django.template.response.TemplateResponse):
-                response.render()
-            self.assertIn(response.status_code, [200, 302])
+            url = reverse(
+                f"admin:{model._meta.app_label}_{model._meta.model_name}_change",
+                args=(quote(instance.pk),),
+            )
+            response = self.client.post(
+                url,
+                data=form_data(form, instance).update({"_continue": "Continue"}),
+                follow=True,
+            )
+            self.change_view_asserts(model, model_admin, response, "change_view_post")
+
+    def test_index_page(self):
+        self.client.force_login(self.superuser)
+
+        response = self.client.get(reverse("admin:index"))
+        self.index_page_asserts(response)
+
+    def index_page_asserts(self, response):
+        self.print_response(response, None, None, "index_page")
+        self.assertIn(response.status_code, [200])
+        self.assertElementContains(
+            response,
+            "h1[id=site-name]",
+            f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
+            f"{response.context_data['site_header']}"
+            "</a></h1>",
+        )
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):

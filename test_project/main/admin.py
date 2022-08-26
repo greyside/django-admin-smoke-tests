@@ -89,7 +89,7 @@ class FailPostAdmin(admin.ModelAdmin):
     list_display = ["fail_field"]
 
     def fail_field(self, obj):
-        raise Exception
+        raise Exception("This exception should be tested for")
 
 
 class ForbiddenPostAdmin(admin.ModelAdmin):
