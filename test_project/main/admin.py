@@ -39,6 +39,7 @@ class ListFilter(SimpleListFilter):
 
 class PostAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
+    save_as = True
     list_editable = ["status"]
     list_display = (
         "title",

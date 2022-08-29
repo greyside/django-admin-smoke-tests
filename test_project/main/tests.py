@@ -1,5 +1,6 @@
 import warnings
 
+from assert_element import AssertElementMixin
 from django.contrib import admin
 from django.core.exceptions import FieldError
 from django.test import TestCase
@@ -21,6 +22,7 @@ class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
     exclude_apps = ["auth"]
     exclude_modeladmins = [FailPostAdmin, "ForbiddenPostAdmin"]
+
 
 class OnlySmokeTest(AdminSiteSmokeTestMixin, TestCase):
     only_apps = ["test_project"]
@@ -135,7 +137,7 @@ class UnitTest(TestCase):
         )
 
 
-class UnitTestMixin(TestCase):
+class UnitTestMixin(AssertElementMixin, TestCase):
     def setUp(self):
         self.test_class = AdminSiteSmokeTest()
         self.test_class.setUp()
@@ -168,8 +170,12 @@ class UnitTestMixin(TestCase):
         )
 
     def test_specified_fields_func(self):
-        self.test_class.specified_fields_func(Channel, dict(self.sites)[Channel])
-        self.test_class.specified_fields_func(Post, dict(self.sites)[Post])
+        self.test_class.specified_fields_func(
+            Channel, dict(self.sites)[Channel], baker.make("Channel")
+        )
+        self.test_class.specified_fields_func(
+            Post, dict(self.sites)[Post], baker.make("Post")
+        )
 
     def test_prepare_models(self):
         channels = self.test_class.prepare_models(Channel, ChannelAdmin)
@@ -196,12 +202,20 @@ class UnitTestMixin(TestCase):
         self.assertEquals(channels[0].text, "Created by recipe")
 
     def test_get_absolute_url(self):
-        self.test_class.get_absolute_url_func(Channel, dict(self.sites)[Channel])
-        self.test_class.get_absolute_url_func(Post, dict(self.sites)[Post])
+        self.test_class.get_absolute_url_func(
+            Channel, dict(self.sites)[Channel], baker.make("Channel")
+        )
+        self.test_class.get_absolute_url_func(
+            Post, dict(self.sites)[Post], baker.make("Post")
+        )
 
     def test_change_view_func(self):
-        self.test_class.change_view_func(Channel, dict(self.sites)[Channel])
-        self.test_class.change_view_func(Post, dict(self.sites)[Post])
+        self.test_class.change_view_func(
+            Channel, dict(self.sites)[Channel], baker.make("Channel")
+        )
+        self.test_class.change_view_func(
+            Post, dict(self.sites)[Post], baker.make("Post")
+        )
 
     def test_change_view_func_encode_url(self):
         """
@@ -218,8 +232,25 @@ class UnitTestMixin(TestCase):
         )
 
     def test_change_post_func(self):
-        self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
-        self.test_class.change_post_func(Post, dict(self.sites)[Post])
+        channel = baker.make("Channel", title="Foo title")
+        response = self.test_class.change_post_func(
+            Channel, dict(self.sites)[Channel], channel
+        )
+        self.assertElementContains(
+            response,
+            "input[id=id_title]",
+            '<input type="text" name="title" value="Foo title" class="vTextField" '
+            'maxlength="140" required="" id="id_title">',
+        )
+
+        post = baker.make("Post", title="Foo post")
+        response = self.test_class.change_post_func(Post, dict(self.sites)[Post], post)
+        self.assertElementContains(
+            response,
+            "input[id=id_title]",
+            '<input type="text" name="title" value="Foo post" class="vTextField" '
+            'maxlength="140" required="" id="id_title">',
+        )
 
     def test_change_post_func_encode_url(self):
         """

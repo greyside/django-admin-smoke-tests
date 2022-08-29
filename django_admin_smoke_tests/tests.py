@@ -1,6 +1,6 @@
 import logging
+import os
 import warnings
-from datetime import datetime
 from typing import List
 
 from assert_element import AssertElementMixin
@@ -159,13 +159,15 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
         cls.prepare_all_models()
 
     def does_print_responses(self):
+        yes_answers = ("y", "yes", "t", "true", "on", "1")
+        if os.environ.get("SMOKE_TESTS_PRINT_RESPONSES", "0").lower() in yes_answers:
+            return True
         return self.print_responses
 
     def print_response(self, response, model, model_admin, view_name):
         if self.does_print_responses():
             with open(
-                f"response_{datetime.now():%Y-%m-%d_%H:%M:%S}_{model.__name__ if model else ''}_"
-                f"{model_admin}_{view_name}.html",
+                f"response_{model.__name__ if model else ''}_{model_admin}_{view_name}.html",
                 "w",
             ) as f:
                 f.write(response.content.decode("utf-8"))
@@ -330,10 +332,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     def test_specified_fields(self, model, model_admin):
         self.specified_fields_func(model, model_admin)
 
-    def specified_fields_func(self, model, model_admin):
+    def specified_fields_func(self, model, model_admin, instance=None):
         attr_set = self.get_attr_set(model, model_admin)
 
-        instance = self.get_instance(model, model_admin)
+        if not instance:
+            instance = self.get_instance(model, model_admin)
         if not instance:
             return
 
@@ -371,10 +374,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     def test_get_absolute_url(self, model, model_admin):
         self.get_absolute_url_func(model, model_admin)
 
-    def get_absolute_url_func(self, model, model_admin):
+    def get_absolute_url_func(self, model, model_admin, instance=None):
         if hasattr(model, "get_absolute_url"):
             # Use fixture data if it exists
-            instance = self.get_instance(model, model_admin, warn=False)
+            if not instance:
+                instance = self.get_instance(model, model_admin, warn=False)
             # Otherwise create a minimal instance
             if not instance:
                 instance = model(pk=1)
@@ -402,6 +406,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             )
 
             self.changelist_view_asserts(model, model_admin, response, "changelist")
+            return response
 
     def changelist_view_asserts(self, model, model_admin, response, view_name):
         if view_name is not None:
@@ -478,6 +483,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             self.changelist_view_search_asserts(
                 model, model_admin, response, "changelist_view_search"
             )
+            return response
 
     def changelist_view_search_asserts(self, model, model_admin, response, view_name):
         """Additional asserts for search test"""
@@ -504,6 +510,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                 follow=True,
             )
             self.add_view_asserts(model, model_admin, response)
+            return response
 
     def add_view_asserts(self, model, model_admin, response):
         self.print_response(response, model, model_admin, "add_view")
@@ -540,6 +547,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             )
             response = self.client.get(url, follow=True)
             self.change_view_asserts(model, model_admin, response, "change_view")
+            return response
 
     def change_view_asserts(self, model, model_admin, response, view_name):
         self.assertIn(response.status_code, [200])
@@ -587,12 +595,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                 f"admin:{model._meta.app_label}_{model._meta.model_name}_change",
                 args=(quote(instance.pk),),
             )
-            response = self.client.post(
-                url,
-                data=form_data(form, instance).update({"_continue": "Continue"}),
-                follow=True,
-            )
+            data = form_data(form, instance)
+            data.update({"_continue": "Save and continue editing"})
+            response = self.client.post(url, data=data, follow=True)
             self.change_view_asserts(model, model_admin, response, "change_view_post")
+            return response
 
     def test_index_page(self):
         self.client.force_login(self.superuser)
