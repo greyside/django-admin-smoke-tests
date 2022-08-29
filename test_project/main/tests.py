@@ -22,6 +22,10 @@ class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     exclude_apps = ["auth"]
     exclude_modeladmins = [FailPostAdmin, "ForbiddenPostAdmin"]
 
+class OnlySmokeTest(AdminSiteSmokeTestMixin, TestCase):
+    only_apps = ["test_project"]
+    only_modeladmins = ["smoke_tests.admin.ChannelAdmin", PostAdmin]
+
 
 class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
@@ -69,6 +73,7 @@ class ForbiddenAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     strict_mode = True
     fixtures = []
     exclude_modeladmins = [FailPostAdmin, PostAdmin, ChannelAdmin]
+    print_responses = True
 
 
 class UnitTest(TestCase):
