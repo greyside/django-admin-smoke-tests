@@ -73,7 +73,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     modeladmins = None
     exclude_apps: List[str] = []
     exclude_modeladmins: List[str] = []
-    recipes_prefix = ""
+    recipes_prefix = None
     strict_mode = False
     print_responses = False
 
@@ -201,30 +201,33 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             "_create_files": True,
             "_refresh_after_create": True,
         }
-        try:
-            return baker.make_recipe(
-                f"{cls.recipes_prefix}.{model.__name__}",
-                _fill_optional=True,
-                **basic_options,
-            )
-        except (AttributeError, TypeError, ValueError):
+
+        options_list = []
+        if cls.recipes_prefix:
+            options_list += [
+                (
+                    "make_recipe",
+                    (f"{cls.recipes_prefix}.{model.__name__}",),
+                    {**basic_options, "_fill_optional": True},
+                ),
+                (
+                    "make_recipe",
+                    (f"{cls.recipes_prefix}.{model.__name__}",),
+                    basic_options,
+                ),
+            ]
+        options_list += [
+            ("make", (model,), {**basic_options, "_fill_optional": True}),
+            ("make", (model,), basic_options),
+        ]
+
+        for function_name, args, kwargs in options_list:
             try:
-                return baker.make_recipe(
-                    f"{cls.recipes_prefix}.{model.__name__}",
-                    **basic_options,
-                )
+                models = getattr(baker, function_name)(*args, **kwargs)
+                return models
             except (AttributeError, TypeError, ValueError):
-                try:
-                    return baker.make(
-                        model,
-                        _fill_optional=True,
-                        **basic_options,
-                    )
-                except (AttributeError, TypeError, ValueError):
-                    return baker.make(
-                        model,
-                        **basic_options,
-                    )
+                pass
+        return baker.make(model)  # Last try, will let the errors propagate
 
     @classmethod
     def prepare_models(cls, model, model_admin, quantity=1):
