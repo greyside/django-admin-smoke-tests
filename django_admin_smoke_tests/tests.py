@@ -125,8 +125,8 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                     missing_apps.append(app)
             if missing_apps:
                 warnings.warn(
-                    "Not all modeladmins in only_apps were found,"
-                    f"using only modeladmin {missing_apps}",
+                    "Not all apps in only_apps were found, "
+                    f"using only apps {missing_apps}",
                     UserWarning,
                 )
 
@@ -138,7 +138,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                     missing_modeladmins.append(model_admin)
             if missing_modeladmins:
                 warnings.warn(
-                    "Not all modeladmins in only_modeladmins were found,"
+                    "Not all modeladmins in only_modeladmins were found, "
                     f"using only modeladmin {missing_modeladmins}",
                     UserWarning,
                 )
