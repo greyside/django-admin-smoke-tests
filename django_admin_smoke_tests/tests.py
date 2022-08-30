@@ -401,12 +401,10 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             model_admin, "has_view_permission"  # Django <= 2.0
         ) or model_admin.has_view_permission(request):
             # make sure no errors happen here
-            response = self.client.get(
-                reverse(
-                    f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
-                ),
-                follow=True,
+            url = reverse(
+                f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
             )
+            response = self.client.get(url, follow=True)
 
             self.changelist_view_asserts(model, model_admin, response, "changelist")
             return response
