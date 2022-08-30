@@ -103,6 +103,14 @@ class AbstractPost(_Abstract):
         return reverse("post-detail", kwargs={"pk": self.pk})
 
 
+expected_exception = TypeError("This exception should be tested for")
+
+
+class ExceptionChannel(Channel):
+    def save(self, *args, **kwargs):
+        raise expected_exception
+
+
 class Post(AbstractPost):
     pass
 

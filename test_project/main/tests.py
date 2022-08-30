@@ -1,4 +1,5 @@
 import warnings
+from unittest.mock import patch
 
 from assert_element import AssertElementMixin
 from django.contrib import admin
@@ -6,7 +7,10 @@ from django.core.exceptions import FieldError
 from django.test import TestCase
 from model_bakery import baker
 
-from django_admin_smoke_tests.tests import AdminSiteSmokeTestMixin
+from django_admin_smoke_tests.tests import (
+    AdminSiteSmokeTestMixin,
+    ModelAdminCreationException,
+)
 
 from .admin import (
     ChannelAdmin,
@@ -15,18 +19,24 @@ from .admin import (
     ListFilter,
     PostAdmin,
 )
-from .models import Channel, FailPost, HasPrimarySlug, Post, ProxyChannel
+from .models import (
+    Channel,
+    ExceptionChannel,
+    FailPost,
+    ForbiddenPost,
+    HasPrimarySlug,
+    HasPrimaryUUID,
+    Post,
+    ProxyChannel,
+    expected_exception,
+)
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     fixtures = []
     exclude_apps = ["auth"]
     exclude_modeladmins = [FailPostAdmin, "ForbiddenPostAdmin"]
-
-
-class OnlySmokeTest(AdminSiteSmokeTestMixin, TestCase):
-    only_apps = ["test_project"]
-    only_modeladmins = ["smoke_tests.admin.ChannelAdmin", PostAdmin]
+    only_modeladmins = [ChannelAdmin, PostAdmin]
 
 
 class FailAdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
@@ -168,6 +178,11 @@ class UnitTestMixin(AssertElementMixin, TestCase):
                 None, Post, dict(self.sites)[Post], "nonexistent_field"
             )
         )
+        self.assertTrue(
+            self.test_class.has_attr(
+                Post(author_id=12345), Post, dict(self.sites)[Post], "author"
+            )
+        )
 
     def test_specified_fields_func(self):
         self.test_class.specified_fields_func(
@@ -188,9 +203,23 @@ class UnitTestMixin(AssertElementMixin, TestCase):
         test_class = MyAdminSiteSmokeTest()
         with self.assertWarnsRegex(
             Warning,
-            "Not able to create test_project.main.models.Channel data.",
+            "Not able to create test_project.main.models.ExceptionChannel data.",
         ):
-            test_class.prepare_models(Channel, ChannelAdmin)
+            test_class.prepare_models(ExceptionChannel, ChannelAdmin)
+
+    def test_prepare_models_error(self):
+        class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
+            recipes_prefix = "foo"
+            strict_mode = True
+
+        test_class = MyAdminSiteSmokeTest()
+        with self.assertRaisesRegex(
+            ModelAdminCreationException,
+            "Above exception occured while trying to create model "
+            "test_project.main.models.ExceptionChannel data",
+        ) as e:
+            test_class.prepare_models(ExceptionChannel, ChannelAdmin)
+        self.assertEquals(e.exception.original_exception, expected_exception)
 
     def test_prepare_models_recipe(self):
         class MyAdminSiteSmokeTest(AdminSiteSmokeTest):
@@ -213,9 +242,12 @@ class UnitTestMixin(AssertElementMixin, TestCase):
         self.test_class.change_view_func(
             Channel, dict(self.sites)[Channel], baker.make("Channel")
         )
-        self.test_class.change_view_func(
-            Post, dict(self.sites)[Post], baker.make("Post")
-        )
+        with patch.dict(
+            "os.environ", {"SMOKE_TESTS_PRINT_RESPONSES": "True"}
+        ):  # Just to test the print_response env var
+            self.test_class.change_view_func(
+                Post, dict(self.sites)[Post], baker.make("Post")
+            )
 
     def test_change_view_func_encode_url(self):
         """
@@ -231,6 +263,14 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             has_primary_slug,
         )
 
+    def test_change_post_func_exception(self):
+        self.test_class.strict_mode = True
+        with self.assertRaisesRegex(
+            AssertionError,
+            "No test_project.main.models.Channel data created to test main.ChannelAdmin.",
+        ):
+            self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
+
     def test_change_post_func(self):
         channel = baker.make("Channel", title="Foo title")
         response = self.test_class.change_post_func(
@@ -243,7 +283,7 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             'maxlength="140" required="" id="id_title">',
         )
 
-        post = baker.make("Post", title="Foo post")
+        post = baker.make("Post", title="Foo post", author_id=123456)
         response = self.test_class.change_post_func(Post, dict(self.sites)[Post], post)
         self.assertElementContains(
             response,
@@ -251,6 +291,7 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             '<input type="text" name="title" value="Foo post" class="vTextField" '
             'maxlength="140" required="" id="id_title">',
         )
+        post.delete()  # to prevent error during tearDown
 
     def test_change_post_func_encode_url(self):
         """
@@ -266,8 +307,30 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             has_primary_slug,
         )
 
+    def test_changelist_filters_view_func(self):
+        self.test_class.changelist_filters_view_func(Channel, dict(self.sites)[Channel])
+        baker.make("Post", title="Foo post")
+        self.test_class.changelist_filters_view_func(Post, dict(self.sites)[Post])
+
+        class FooFilter:
+            pass
+
+        class MyPostAdmin(PostAdmin):
+            list_filter = (FooFilter,)
+
+        with self.assertRaisesRegex(
+            Exception,
+            "Unknown filter type: <class "
+            "'test_project.main.tests.UnitTestMixin.test_changelist_filters_view_func.<locals>.FooFilter'>",
+        ):
+            self.test_class.changelist_filters_view_func(
+                Post, MyPostAdmin(Post, self.sites)
+            )
+
 
 class UnitTestMixinNoInstances(TestCase):
+    maxDiff = None
+
     def setUp(self):
         self.sites = admin.site._registry.items()
 
@@ -316,10 +379,37 @@ class UnitTestMixinNoInstances(TestCase):
             "No test_project.main.models.Channel data created to test main.ChannelAdmin.",
         ):
             self.test_class.change_post_func(Channel, dict(self.sites)[Channel])
-        with warnings.catch_warnings():
+        with warnings.catch_warnings(record=True) as w:
             self.test_class.change_post_func(ProxyChannel, dict(self.sites)[Channel])
+            self.assertEqual(w, [])
         with self.assertWarnsRegex(
             Warning,
             "No test_project.main.models.Post data created to test main.PostAdmin.",
         ):
             self.test_class.change_post_func(Post, dict(self.sites)[Post])
+
+    def test_get_modeladmins(self):
+        class OnlySmokeTest(AdminSiteSmokeTestMixin, TestCase):
+            only_apps = ["main", "foo_app"]
+            only_modeladmins = ["foo_modeladmin", PostAdmin]
+
+        with warnings.catch_warnings(record=True) as w:
+            OnlySmokeTest().get_modeladmins()
+            self.assertEqual(len(w), 2)
+            self.assertEqual(
+                str(w[0].message),
+                "Not all apps in only_apps were found, using only apps ['foo_app']",
+            )
+            self.assertEqual(
+                str(w[1].message),
+                "Not all modeladmins in only_modeladmins were found, "
+                "using only modeladmin ['foo_modeladmin']",
+            )
+        modeladmins = OnlySmokeTest.get_modeladmins()
+        self.assertEqual(len(modeladmins), 6)
+        print(modeladmins)
+        model_list = list(zip(*modeladmins))[0]
+        self.assertSetEqual(
+            set(model_list),
+            {Channel, Post, FailPost, ForbiddenPost, HasPrimarySlug, HasPrimaryUUID},
+        )

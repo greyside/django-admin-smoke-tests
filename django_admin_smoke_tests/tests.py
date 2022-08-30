@@ -225,7 +225,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             try:
                 models = getattr(baker, function_name)(*args, **kwargs)
                 return models
-            except (AttributeError, TypeError, ValueError):
+            except (AttributeError, TypeError, ValueError, ModuleNotFoundError):
                 pass
         return baker.make(model)  # Last try, will let the errors propagate
 
@@ -369,9 +369,12 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     def queryset_func(self, model, model_admin):
         request = self.get_request(model, model_admin)
 
+        # I don't think, that ModelAdmin without get_queryset method could exist.
+        # I am disabling this, in case we find such case enable this and test False result.
+        # if hasattr(model_admin, "get_queryset"):
+
         # make sure no errors happen here
-        if hasattr(model_admin, "get_queryset"):
-            list(model_admin.get_queryset(request))
+        list(model_admin.get_queryset(request))
 
     @for_all_model_admins
     def test_get_absolute_url(self, model, model_admin):
@@ -451,6 +454,8 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                     filters = [
                         (key, lookup[0]) for lookup in filter_instance.lookup_choices
                     ]
+                else:
+                    raise Exception(f"Unknown filter type: {filter}")
                 for key, value in filters:
                     response = self.client.get(
                         reverse(
