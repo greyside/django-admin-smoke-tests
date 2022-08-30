@@ -75,13 +75,6 @@ class PostAdmin(admin.ModelAdmin):
         "=channel__followers__first_name",
     ]
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "author":
-            db_field.default = request.user
-        return super(PostAdmin, self).formfield_for_foreignkey(
-            db_field, request, **kwargs
-        )
-
 
 class FailPostAdmin(admin.ModelAdmin):
     """Admin, that should fail if it is not excluded from the smoke tests"""
