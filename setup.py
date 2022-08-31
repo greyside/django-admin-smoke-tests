@@ -20,7 +20,7 @@ def runtests():
 
     os.environ["DJANGO_SETTINGS_MODULE"] = "test_project.settings"
     django.setup()
-    call_command("test", "test_project.main.tests")
+    call_command("test", "test_project")
     sys.exit()
 
 
