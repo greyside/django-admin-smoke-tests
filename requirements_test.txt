@@ -1,2 +1,8 @@
 django_coverage_plugin
+django-avatar
+django-extensions
+jsonfield
+freezegun
+django-money
+django-phonenumber-field[phonenumbers]
 -r requirements.txt

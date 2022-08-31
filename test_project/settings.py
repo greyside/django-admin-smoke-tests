@@ -58,6 +58,7 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "test_project.main",
+    "test_project.baker_field_generators_app",
 )
 
 MIDDLEWARE = (

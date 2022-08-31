@@ -1,6 +1,6 @@
 # This file contain model_bakery field genrators for field types that
 # can be found in various Django apps.
-# TODO: make a separate application from this file.
+# TODO: this should be moved to the apps where the field defined.
 import shutil
 from decimal import Decimal
 
@@ -30,7 +30,7 @@ def gen_json():
 
 
 def gen_money():
-    from hordak.models import Money
+    from djmoney.money import Money
 
     return Money(Decimal(100), "USD")
 
