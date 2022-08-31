@@ -1,0 +1,2 @@
+django_coverage_plugin
+-r requirements.txt
