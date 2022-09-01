@@ -409,12 +409,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             )
             response = self.client.get(url, follow=True)
 
-            self.changelist_view_asserts(model, model_admin, response, "changelist")
+            self.print_response(response, model, model_admin, "changelist")
+            self.changelist_view_asserts(model, model_admin, response)
             return response
 
-    def changelist_view_asserts(self, model, model_admin, response, view_name):
-        if view_name is not None:
-            self.print_response(response, model, model_admin, view_name)
+    def changelist_view_asserts(self, model, model_admin, response):
         self.assertIn(response.status_code, [200])
         self.assertElementContains(
             response,
@@ -464,9 +463,10 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                         + f"?{key}={value}",
                         follow=True,
                     )
-                    self.changelist_view_asserts(
-                        model, model_admin, response, "changelist_filters"
+                    self.print_response(
+                        response, model, model_admin, "changelist_filters"
                     )
+                    self.changelist_view_asserts(model, model_admin, response)
 
     @for_all_model_admins
     def test_changelist_view_search(self, model, model_admin):
@@ -485,15 +485,13 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                 + "?q=test",
                 follow=True,
             )
-            self.changelist_view_asserts(model, model_admin, response, None)
-            self.changelist_view_search_asserts(
-                model, model_admin, response, "changelist_view_search"
-            )
+            self.changelist_view_asserts(model, model_admin, response)
+            self.print_response(response, model, model_admin, "changelist_view_search")
+            self.changelist_view_search_asserts(model, model_admin, response)
             return response
 
-    def changelist_view_search_asserts(self, model, model_admin, response, view_name):
+    def changelist_view_search_asserts(self, model, model_admin, response):
         """Additional asserts for search test"""
-        self.print_response(response, model, model_admin, view_name)
         if hasattr(model_admin, "search_fields") and len(model_admin.search_fields) > 0:
             self.assertElementContains(
                 response,
@@ -515,11 +513,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                 reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_add"),
                 follow=True,
             )
+            self.print_response(response, model, model_admin, "add_view")
             self.add_view_asserts(model, model_admin, response)
             return response
 
     def add_view_asserts(self, model, model_admin, response):
-        self.print_response(response, model, model_admin, "add_view")
         self.assertIn(response.status_code, [200])
         self.assertElementContains(
             response,
@@ -552,12 +550,12 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                 args=(quote(instance.pk),),
             )
             response = self.client.get(url, follow=True)
-            self.change_view_asserts(model, model_admin, response, "change_view")
+            self.print_response(response, model, model_admin, "change_view")
+            self.change_view_asserts(model, model_admin, response, instance)
             return response
 
-    def change_view_asserts(self, model, model_admin, response, view_name):
+    def change_view_asserts(self, model, model_admin, response, instance):
         self.assertIn(response.status_code, [200])
-        self.print_response(response, model, model_admin, view_name)
         self.assertElementContains(
             response,
             "h1[id=site-name]",
@@ -604,17 +602,18 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             data = form_data(form, instance)
             data.update({"_continue": "Save and continue editing"})
             response = self.client.post(url, data=data, follow=True)
-            self.change_view_asserts(model, model_admin, response, "change_view_post")
+            self.print_response(response, model, model_admin, "change_view_post")
+            self.change_view_asserts(model, model_admin, response, instance)
             return response
 
     def test_index_page(self):
         self.client.force_login(self.superuser)
 
         response = self.client.get(reverse("admin:index"))
+        self.print_response(response, None, None, "index_page")
         self.index_page_asserts(response)
 
     def index_page_asserts(self, response):
-        self.print_response(response, None, None, "index_page")
         self.assertIn(response.status_code, [200])
         self.assertElementContains(
             response,
