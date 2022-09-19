@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from assert_element import AssertElementMixin
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.core.exceptions import FieldError
 from django.test import TestCase
 from model_bakery import baker
@@ -30,6 +31,9 @@ from .models import (
     ProxyChannel,
     expected_exception,
 )
+
+
+User = get_user_model()
 
 
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
@@ -326,6 +330,19 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             self.test_class.changelist_filters_view_func(
                 Post, MyPostAdmin(Post, self.sites)
             )
+
+    def test_get_instance(self):
+        channel = baker.make("Channel")
+        self.assertEquals(
+            self.test_class.get_instance(Channel, dict(self.sites)[Channel]),
+            channel,
+        )
+
+    def test_get_instance_superuser(self):
+        self.assertEquals(
+            self.test_class.get_instance(User, dict(self.sites)[User]),
+            None,
+        )
 
 
 class UnitTestMixinNoInstances(TestCase):

@@ -560,7 +560,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             response,
             "h1[id=site-name]",
             f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
-            f"{response.context_data['site_header']}"
+            f"{response.context_data.get('site_header', '')}"
             "</a></h1>",
         )
         self.assertElementContains(
@@ -576,7 +576,10 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     def get_instance(self, model, model_admin, warn=True):
         if model._meta.proxy:
             return
-        instance = model.objects.last()
+        objects = model.objects
+        if model == self.superuser._meta.model:
+            objects = objects.exclude(id=self.superuser.id)
+        instance = objects.last()
         if not instance and warn:
             warn_message = f"No {model_path(model)} data created to test {model_admin}."
             if self.strict_mode:
