@@ -413,13 +413,18 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             self.changelist_view_asserts(model, model_admin, response)
             return response
 
+    def get_site_header(self, response):
+        if hasattr(response, "context_data") and "site_header" in response.context_data:
+            return response.context_data["site_header"]
+        return "Django administration"
+
     def changelist_view_asserts(self, model, model_admin, response):
         self.assertIn(response.status_code, [200])
         self.assertElementContains(
             response,
             "h1[id=site-name]",
             f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
-            f"{response.context_data['site_header']}"
+            f"{self.get_site_header(response)}"
             "</a></h1>",
         )
         self.assertElementContains(
@@ -523,7 +528,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             response,
             "h1[id=site-name]",
             f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
-            f"{response.context_data['site_header']}"
+            f"{self.get_site_header(response)}"
             "</a></h1>",
         )
         self.assertElementContains(
@@ -554,19 +559,25 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             self.change_view_asserts(model, model_admin, response, instance)
             return response
 
+    def get_site_h1_content(self, model, model_admin, response, instance):
+        return (
+            f"<a href='{reverse('admin:index')}'>{self.get_site_header(response)}</a>"
+        )
+
+    def get_content_h1_content(self, model, model_admin, responese, instance):
+        return f"Change {model._meta.verbose_name}"
+
     def change_view_asserts(self, model, model_admin, response, instance):
         self.assertIn(response.status_code, [200])
         self.assertElementContains(
             response,
             "h1[id=site-name]",
-            f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
-            f"{response.context_data.get('site_header', '')}"
-            "</a></h1>",
+            f"<h1 id='site-name'>{self.get_site_h1_content(model, model_admin, response, instance)}</h1>",
         )
         self.assertElementContains(
             response,
             "div[id=content] h1",
-            f"<h1>Change {model._meta.verbose_name}</h1>",
+            f"<h1>{self.get_content_h1_content(model, model_admin, response, instance)}</h1>",
         )
 
     @for_all_model_admins
@@ -622,7 +633,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
             response,
             "h1[id=site-name]",
             f"<h1 id='site-name'><a href='{reverse('admin:index')}'>"
-            f"{response.context_data['site_header']}"
+            f"{self.get_site_header(response)}"
             "</a></h1>",
         )
 
