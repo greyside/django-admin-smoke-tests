@@ -4,5 +4,6 @@ django-extensions
 jsonfield
 freezegun
 django-money
+django-categories
 django-phonenumber-field[phonenumbers]
 -r requirements.txt

@@ -57,6 +57,8 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "categories",
+    "categories.editor",
     "test_project.main",
     "test_project.baker_field_generators_app",
 )

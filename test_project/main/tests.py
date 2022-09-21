@@ -2,10 +2,12 @@ import warnings
 from unittest.mock import patch
 
 from assert_element import AssertElementMixin
+from categories.models import Category
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import FieldError
 from django.test import TestCase
+from django.test.utils import override_settings
 from model_bakery import baker
 
 from django_admin_smoke_tests.tests import (
@@ -296,6 +298,31 @@ class UnitTestMixin(AssertElementMixin, TestCase):
             'maxlength="140" required="" id="id_title">',
         )
         post.delete()  # to prevent error during tearDown
+
+    @override_settings(MPTT_ALLOW_TESTING_GENERATORS=True)
+    def test_changelist_view_search_func_no_site_header(self):
+        """
+        Test that site_header defaults correctly
+        The django-categories has for some reason empty context_data but the H1
+        we are testing for still has to defaults to "Django administration".
+        """
+        baker.make("Category", name="Foo title")
+        response = self.test_class.changelist_view_search_func(
+            Category, dict(self.sites)[Category]
+        )
+        with open("response.html", "w") as f:
+            f.write(response.content.decode("utf-8"))
+        self.assertEquals(hasattr(response, "context_data"), False)
+        self.assertElementContains(
+            response,
+            "input[id=searchbar]",
+            '<input type="text" size="40" name="q" value="test" id="searchbar" autofocus="">',
+        )
+        self.assertElementContains(
+            response,
+            "h1[id=site-name]",
+            '<h1 id="site-name"><a href="/admin/">Django administration</a></h1>',
+        )
 
     def test_change_post_func_encode_url(self):
         """
