@@ -450,7 +450,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
                     filter = filter[0]
                 if isinstance(filter, str):
                     key = filter
-                    value = model.objects.values(filter).first()[filter]
+                    value = model.objects.values_list(filter, flat=True).first()
                     filters = [(key, value)]
                 elif issubclass(filter, SimpleListFilter):
                     filter_instance = filter(request, [], model, model_admin)
@@ -500,7 +500,7 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
         if hasattr(model_admin, "search_fields") and len(model_admin.search_fields) > 0:
             self.assertElementContains(
                 response,
-                "input[type=text]",
+                "input[id=searchbar]",
                 '<input type="text" size="40" name="q" value="test" id="searchbar" autofocus="">',
             )
 
@@ -638,5 +638,8 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
         )
 
 
+@override_settings(
+    ALLOWED_HOSTS=["*"],
+)
 class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
     pass

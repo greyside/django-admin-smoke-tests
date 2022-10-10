@@ -23,7 +23,7 @@ Import into your own code:
 
     class AdminSiteSmokeTest(AdminSiteSmokeTestMixin, TestCase):
         def setUp(self):
-            super(AdminSiteSmokeTest, self).setUp()
+            super().setUp()
             # custom setup goes here
 
 If you want to use admin smoke tests as part of your tests with data from fixtures,
