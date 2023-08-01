@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("main", "0002_channel_file_failpost_file_forbiddenpost_file_and_more"),
     ]
