@@ -3,6 +3,7 @@ import os
 import warnings
 from typing import List
 
+import django
 from assert_element import AssertElementMixin
 from django.contrib import admin, auth
 from django.contrib.admin import SimpleListFilter
@@ -498,10 +499,11 @@ class AdminSiteSmokeTestMixin(AssertElementMixin):
     def changelist_view_search_asserts(self, model, model_admin, response):
         """Additional asserts for search test"""
         if hasattr(model_admin, "search_fields") and len(model_admin.search_fields) > 0:
+            autofocus_string = "" if django.VERSION >= (4, 2) else ' autofocus=""'
             self.assertElementContains(
                 response,
                 "input[id=searchbar]",
-                '<input type="text" size="40" name="q" value="test" id="searchbar" autofocus="">',
+                f'<input type="text" size="40" name="q" value="test" id="searchbar" {autofocus_string}>',
             )
 
     @for_all_model_admins

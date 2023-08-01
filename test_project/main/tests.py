@@ -1,6 +1,7 @@
 import warnings
 from unittest.mock import patch
 
+import django
 from assert_element import AssertElementMixin
 from categories.models import Category
 from django.contrib import admin
@@ -313,10 +314,11 @@ class UnitTestMixin(AssertElementMixin, TestCase):
         with open("response.html", "w") as f:
             f.write(response.content.decode("utf-8"))
         self.assertEquals(hasattr(response, "context_data"), False)
+        autofocus_string = "" if django.VERSION >= (4, 2) else ' autofocus=""'
         self.assertElementContains(
             response,
             "input[id=searchbar]",
-            '<input type="text" size="40" name="q" value="test" id="searchbar" autofocus="">',
+            f'<input type="text" size="40" name="q" value="test" id="searchbar" {autofocus_string}>',
         )
         self.assertElementContains(
             response,
