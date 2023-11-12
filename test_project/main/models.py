@@ -2,16 +2,17 @@ import uuid
 
 # Django imports
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 
 
 class _Abstract(models.Model):
     slug = models.SlugField(unique=True)
     title = models.CharField(max_length=140, unique=True)
-    text = models.TextField(default='')
-    rendered_text = models.TextField(default='', blank=True)
+    text = models.TextField(default="")
+    rendered_text = models.TextField(default="", blank=True)
+    file = models.FileField(blank=True, null=True)
 
     def __unicode__(self):
         return self.title
@@ -24,35 +25,53 @@ class Channel(_Abstract):
     followers = models.ManyToManyField(settings.AUTH_USER_MODEL)
 
     ENROLLMENTS = (
-        (0, 'Self'),
-        (1, 'Author'),
+        (0, "Self"),
+        (1, "Author"),
     )
 
-    public = models.BooleanField(default=True,
-        help_text="If False, only followers will be able to see content.")
+    public = models.BooleanField(
+        default=True,
+        help_text="If False, only followers will be able to see content.",
+    )
 
-    enrollment = models.IntegerField(max_length=1, default=0,
-        choices=ENROLLMENTS)
+    enrollment = models.IntegerField(
+        default=0,
+        choices=ENROLLMENTS,
+    )
 
     class Meta:
-        ordering = ['title']
+        ordering = ["title"]
 
 
-class Post(_Abstract):
+class ProxyChannel(Channel):
+    class Meta:
+        proxy = True
+
+
+class AbstractPost(_Abstract):
     SUMMARY_LENGTH = 50
 
     STATUSES = [
-        (0, 'Draft',),
-        (1, 'Published',),
+        (
+            0,
+            "Draft",
+        ),
+        (
+            1,
+            "Published",
+        ),
     ]
 
-    channel = models.ForeignKey(Channel)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL)
-    status = models.IntegerField(max_length=1, default=0, choices=STATUSES)
-    custom_summary = models.TextField(default='')
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    status = models.IntegerField(default=0, choices=STATUSES)
+    custom_summary = models.TextField(default="")
     created = models.DateTimeField(auto_now_add=True, editable=False)
     modified = models.DateTimeField(auto_now=True, editable=False)
-    published = models.DateTimeField(default=timezone.now())
+    published = models.DateTimeField(default=timezone.now)
 
     @property
     def teaser(self):
@@ -60,7 +79,7 @@ class Post(_Abstract):
         A small excerpt of text that can be used in the absence of a custom
         summary.
         """
-        return self.text[:Post.SUMMARY_LENGTH]
+        return self.text[: Post.SUMMARY_LENGTH]
 
     @property
     def summary(self):
@@ -77,17 +96,32 @@ class Post(_Abstract):
         return None
 
     class Meta:
-        ordering = ['published']
+        ordering = ["published"]
+        abstract = True
 
     def get_absolute_url(self):
-        return reverse('post-detail', kwargs={'pk': self.pk})
+        return reverse("post-detail", kwargs={"pk": self.pk})
 
 
-class ForbiddenPost(Post):
+expected_exception = TypeError("This exception should be tested for")
+
+
+class ExceptionChannel(Channel):
+    def save(self, *args, **kwargs):
+        raise expected_exception
+
+
+class Post(AbstractPost):
     pass
 
 
-class FailPost(Post):
+class ForbiddenPost(AbstractPost):
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name="forbidden_posts"
+    )
+
+
+class FailPost(AbstractPost):
     pass
 
 
@@ -96,16 +130,12 @@ class HasPrimarySlug(models.Model):
     title = models.CharField(max_length=140, unique=True)
 
     def get_absolute_url(self):
-        return reverse('hasprimaryslug-detail', kwargs={'pk': self.pk})
+        return reverse("hasprimaryslug-detail", kwargs={"pk": self.pk})
 
 
-HasPrimaryUUID = None
+class HasPrimaryUUID(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=140, unique=True)
 
-if hasattr(models, 'UUIDField'):
-    class HasPrimaryUUID(models.Model):
-        id = models.UUIDField(
-            primary_key=True, default=uuid.uuid4, editable=False)
-        title = models.CharField(max_length=140, unique=True)
-
-        def get_absolute_url(self):
-            return reverse('hasprimaryuuid-detail', kwargs={'pk': self.pk})
+    def get_absolute_url(self):
+        return reverse("hasprimaryuuid-detail", kwargs={"pk": self.pk})

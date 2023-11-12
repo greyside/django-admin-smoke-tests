@@ -1,0 +1,9 @@
+[run]
+omit =
+   *virtualenvs*,
+   *migrations*,
+   *site-packages*
+include = django_admin_smoke_tests*
+plugins =
+    django_coverage_plugin
+branch = True

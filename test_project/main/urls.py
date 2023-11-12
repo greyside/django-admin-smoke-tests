@@ -1,10 +1,16 @@
-from django.conf.urls import url
+from django.urls import path
 
 
 urlpatterns = [
-    url(r'^posts/(?P<pk>.+)/$', lambda **kwargs: '', name="post-detail"),
-    url(r'^hasprimaryslug/(?P<pk>[\w-]+)/$', lambda **kwargs: '',
-        name="hasprimaryslug-detail"),
-    url(r'^hasprimaryuuid/(?P<pk>[\w-]+)/$', lambda **kwargs: '',
-        name="hasprimaryuuid-detail"),
+    path("posts/(<str:pk>/", lambda **kwargs: "", name="post-detail"),
+    path(
+        "hasprimaryslug/<str:pk>/",
+        lambda **kwargs: "",
+        name="hasprimaryslug-detail",
+    ),
+    path(
+        "hasprimaryuuid/<str:pk>/",
+        lambda **kwargs: "",
+        name="hasprimaryuuid-detail",
+    ),
 ]

@@ -4,6 +4,7 @@
 *.so
 
 # Packages
+.eggs
 *.egg
 *.egg-info
 dist
@@ -34,3 +35,21 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+*.db
+*nbproject*
+*devserver*
+*.idea*
+docs/build/*
+build/
+dist/
+*.egg-info/*
+*sublime*
+*~
+*.swp
+*.swo
+*.swn
+*.orig
+db.sqlite3
+mock_file*
+response_*
